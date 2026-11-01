@@ -177,6 +177,25 @@ section{display:flex;flex-direction:column;gap:12px}
 .aact .btn{padding:4px 12px;font-size:.88rem}
 .ata{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.8;resize:vertical}
 .ata:focus-visible{outline:2px solid var(--gold)}
+.abtn.ok{border-color:var(--ok);color:var(--ok)}
+.alab{font-weight:700;color:var(--acc2);font-size:.9rem}
+.ascore{border:1.5px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;flex-direction:column;gap:6px;background:var(--bg)}
+.ascore .arow{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;font-size:.88rem;color:var(--mut)}
+.amarks{color:var(--acc2);font-size:1.1rem;font-family:var(--sans)}
+.abar{position:relative;height:10px;border-radius:5px;background:var(--card);border:1px solid var(--line);overflow:visible}
+.abar i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,var(--gold),var(--ok))}
+.abar u{position:absolute;top:-4px;width:2px;height:16px;background:var(--ink);opacity:.6}
+.alock{border:1.5px dashed var(--line);border-radius:10px;padding:8px 12px;color:var(--mut);font-size:.9rem;text-align:center}
+.atxt{white-space:normal}
+.atxt .ah{font-weight:700;color:var(--acc2);margin-top:8px}
+.atxt .asub{font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--gold) 14%,transparent);border-radius:6px;padding:2px 8px;margin-top:10px}
+.atxt .apali{font-style:italic;color:var(--teal);border-left:3px solid var(--teal);padding-left:10px;margin:4px 0}
+.atxt .anote{font-size:.86rem;color:var(--mut);font-style:italic}
+.atxt .asp{height:6px}
+.amiss{font-size:.84rem;color:var(--mut);border-top:1px dotted var(--line);padding-top:6px}
+.amiss b{color:var(--acc2)}
+.pscore{font-weight:700;color:var(--ok);font-size:.92rem;font-family:var(--sans)}
+.pscore:empty{display:none}
 #ansCount{white-space:nowrap}
 .legend{font-size:.8rem;color:var(--mut)}
 .progress{display:flex;align-items:center;gap:10px;font-size:.86rem;color:var(--mut)}
@@ -454,15 +473,69 @@ function qCard(q,opt={}){
   return `<article class="q${d?" done":""}" data-key="${esc(q.key)}"><div class="qn">${q.n||"•"}</div><div class="qt">${hl(q.t,opt.q)}</div>
   <div class="meta">${where}${q.book?`<span>${q.book}</span>`:""}${opt.tags?q.tags.map(t=>`<button class="tag" data-tag="${esc(t)}">${t}</button>`).join(""):""}${opt.exam?"":ansBtn(q)}<button class="mark">${d?"✓ පාඩම් කළා":"පාඩම් කළා"}</button></div>${opt.exam?"":`<div class="ans" data-aid="${q.aid}" hidden></div>`}</article>`;
 }
-/* ---------- answers (shared db: answers/<aid> = {text, updatedAt}) ---------- */
-let ANS={},ansReady=false,DB=null,canWrite=false;
-const ansBtn=q=>{const has=ANS[q.aid]&&ANS[q.aid].text;return `<button class="abtn${has?" has":""}" data-aid="${q.aid}">${has?"📖 පිළිතුර":"📝 පිළිතුර"}</button>`};
-function ansPanel(el){const aid=el.dataset.aid,a=ANS[aid],txt=a&&a.text||"";
-  el.innerHTML=(txt?`<div class="atxt">${esc(txt)}</div>`:`<div class="aempty">${ansReady?"මෙම ප්‍රශ්නයට පිළිතුර තවම ඇතුළත් කර නැත.":DB===null&&ansTried?"පිළිතුරු ගබඩාවට සම්බන්ධ විය නොහැක.":"පිළිතුරු පූරණය වෙමින්…"}</div>`)
-   +(canWrite?`<div class="aact"><button class="btn g aedit">✏️ ${txt?"පිළිතුර සංස්කරණය කරන්න":"පිළිතුර ලියන්න"}</button></div>`:"");
+/* ---------- answers ----------
+   Model answers: shared db answers/<aid> = {text}. Editors (owner/admin) write them.
+   Practice: each viewer writes their own answer; it is scored against the model answer's key terms.
+   The model answer opens once the viewer's answer covers UNLOCK of those key terms.
+   Practice is kept in the viewer's private db subtree data/users/<id>/<aid> (or this browser when there is no db). */
+let ANS={},ansReady=false,DB=null,canWrite=false,UID=null,PR={};
+const UNLOCK=0.65;
+const STOP=new Set("යන හා සහ ද වේ ය යි බව නම් එම මේ ඒ කොට කළ විසින් සඳහා පිණිස අතර හෝ නොවේ වන ඇති යැයි ලෙස මෙන් නිසා බැවින් කල්හි විට ඉන් පසු දී දක්වා වූ වෙයි යනු යනාදී වශයෙන් එක් සියලු පමණක් නැත එය ඔහු ඔවුහු ඇය මෙහි එහි එසේ මෙසේ තුළ අනුව පිළිබඳ ද්දී වෙත සමග සමඟ නැතිව නැති ඉතා වඩා කියා කී කියන යි යැ ඇත ඇත්තේ වේද වන්නේ කරන කරයි වුවද වුව නමුත් පවා ගැනීමේ ගැනීම ගැනීමට ගෙන ගත් ගත්තේ ගන්නා බැවින්ද බැවිනි කළහ කළේ කරන්නේ කරනු කිරීම කිරීමට කිරීමේ බවට බවද බොහෝ මහත් වූහ වූයේ විය වෙති වෙත් වෙන වෙන්නේ ඇතිව ඇතැයි තිබේ තිබෙන යුතු යුතුය හැකි හැක පළමු දෙවන දෙක තුන සතර පස වැනි ආදී ආදිය ආදියෙන් කොට්ඨාස කොටස යනුවෙන් නොවන සිට දක්වා ඉදිරියේ විසින්ද සඳහාද එබැවින් එහෙත් නමුදු එනම් මෙය මෙම එම ඒවා මේවා කිසි කිසිවක් සෑම තමා තමන් තමන්ගේ ඔහුගේ ඔවුන් ඔවුන්ගේ අය දෙය දේ කාරණය කරුණ කරුණු".split(" "));
+const nrm=s=>String(s||"").replace(/[‌‍]/g,"").toLowerCase();
+const toks=s=>nrm(s).split(/[^඀-෿a-z0-9]+/).filter(Boolean);
+const cpl=t=>[...t].length;
+let DF=null;
+function df(){if(DF)return DF;DF={};ALLQ.forEach(q=>{new Set(toks(q.t).map(stem)).forEach(t=>DF[t]=(DF[t]||0)+1)});return DF}
+const stem=t=>{const a=[...t];return a.slice(0,Math.max(3,Math.ceil(a.length*0.65))).join("")};
+const KC={};
+// key terms: distinctive words of the model answer, weighted by how often the answer uses them and how rare they are in the question bank.
+// Only the strongest third (12–45 terms) count, so a learner's own wording of the main points can reach the 65% line.
+function keyTerms(q){const a=ANS[q.aid];if(!a||!a.text)return [];if(KC[q.aid]&&KC[q.aid].src===a.text)return KC[q.aid].k;
+  const qn=nrm(q.t),D=df(),N=ALLQ.length,m={};
+  toks(a.text).forEach(t=>{if(cpl(t)<3||/^\d+$/.test(t)||STOP.has(t))return;const s=stem(t);if(qn.includes(s)||(D[s]||0)>N*0.015)return;(m[s]=m[s]||{t,s,c:0}).c++});
+  let k=Object.values(m).map(o=>(o.w=(1+Math.log(o.c))*Math.log((N+1)/((D[o.s]||0)+1)),o)).sort((x,y)=>y.w-x.w);
+  k=k.slice(0,Math.max(12,Math.min(45,Math.ceil(k.length/3))));KC[q.aid]={src:a.text,k};return k}
+function score(q,txt){const keys=keyTerms(q);if(!keys.length)return null;const n=nrm(txt);const hit=keys.filter(k=>n.includes(k.s));const cov=hit.length/keys.length;
+  return {cov,marks:Math.min(10,Math.round(cov*20)/2),hit:hit.length,total:keys.length,miss:keys.filter(k=>!n.includes(k.s)).map(k=>k.t)}}
+const pct=x=>Math.round(x*100)+"%";
+// render a model answer: "## " heading, "### " sub-question, "> " Pali, "※ " note
+function renderModel(txt){return txt.split("\n").map(l=>{const e=esc(l);
+  if(l.startsWith("### "))return `<div class="asub">${esc(l.slice(4))}</div>`;if(l.startsWith("## "))return `<div class="ah">${esc(l.slice(3))}</div>`;
+  if(l.startsWith("> "))return `<div class="apali">${esc(l.slice(2))}</div>`;if(l.startsWith("※ "))return `<div class="anote">${esc(l.slice(2))}</div>`;
+  return l.trim()?`<div>${e}</div>`:`<div class="asp"></div>`}).join("")}
+// practice storage
+const lsPR=()=>{try{return JSON.parse(localStorage.getItem("tvib:pr")||"{}")}catch(e){return {}}};
+async function savePR(aid,rec){PR[aid]=rec;
+  if(DB&&UID){try{await DB.collection("data/users/"+UID).doc(aid).set(rec);return true}catch(e){}}
+  try{const m=lsPR();m[aid]=rec;localStorage.setItem("tvib:pr",JSON.stringify(m))}catch(e){}return !!(DB&&UID)?false:true}
+const ansBtn=q=>{const has=ANS[q.aid]&&ANS[q.aid].text,r=PR[q.aid];
+  return `<button class="abtn${has?" has":""}${r&&r.best>=UNLOCK?" ok":""}" data-aid="${q.aid}">${btnLabel(q.aid)}</button>`};
+const btnLabel=aid=>{const r=PR[aid];if(r&&typeof r.marks==="number")return `✍️ පිළිතුර · ${r.marks}/10`;return ANS[aid]&&ANS[aid].text?"✍️ පිළිතුර ලියන්න":"📝 පිළිතුර"};
+const qOf=aid=>ALLQ.find(q=>q.aid===aid);
+function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.text||"",r=PR[aid]||{},open=el.dataset.show==="1";
+  const unlocked=(r.best||0)>=UNLOCK;
+  let h="";
+  if(!ansReady&&!ansTried){el.innerHTML=`<div class="aempty">පිළිතුරු පූරණය වෙමින්…</div>`;return}
+  h+=`<label class="alab" for="pt-${aid}">ඔබේ පිළිතුර</label><textarea class="ata apt" id="pt-${aid}" rows="7" placeholder="ප්‍රශ්නයට ඔබේ පිළිතුර මෙහි ලියන්න…">${esc(r.text||"")}</textarea>`;
+  h+=`<div class="aact"><button class="btn acheck">${model?"පිළිතුර පරීක්ෂා කරන්න":"සුරකින්න"}</button><span class="amsg note"></span></div>`;
+  if(model&&typeof r.cov==="number"){h+=`<div class="ascore"><div class="arow"><b class="amarks">ලකුණු ${r.marks} / 10</b><span>ප්‍රධාන කරුණු ආවරණය ${pct(r.cov)}${r.best>r.cov?` · හොඳම ${pct(r.best)}`:""}</span></div>
+     <div class="abar"><i style="width:${Math.min(100,r.cov*100)}%"></i><u style="left:${UNLOCK*100}%"></u></div>
+     <div class="note">${unlocked?"✓ ආදර්ශ පිළිතුර බැලීමට ඔබට හැකියි.":`ආදර්ශ පිළිතුර බැලීමට ප්‍රධාන කරුණුවලින් ${pct(UNLOCK)}ක් ආවරණය විය යුතුය. තවත් කරුණු එකතු කර නැවත පරීක්ෂා කරන්න.`}</div></div>`}
+  if(model){h+=unlocked?`<div class="aact"><button class="btn g ashow">${open?"ආදර්ශ පිළිතුර සඟවන්න":"📖 ආදර්ශ පිළිතුර බලන්න"}</button></div>`:`<div class="alock">🔒 ආදර්ශ පිළිතුර – ${pct(UNLOCK)}ක ආවරණයකින් පසු විවෘත වේ</div>`;
+    if(unlocked&&open){const sc=score(q,r.text||"");h+=`<div class="atxt">${renderModel(model)}</div>`+(sc&&sc.miss.length?`<div class="amiss"><b>ඔබේ පිළිතුරේ නොතිබූ ප්‍රධාන පද:</b> ${sc.miss.slice(0,40).map(esc).join(", ")}</div>`:"")}}
+  else h+=`<div class="aempty">${ansTried&&!DB&&window.claude?"පිළිතුරු ගබඩාවට සම්බන්ධ විය නොහැක.":"මෙම ප්‍රශ්නයට ආදර්ශ පිළිතුර තවම ඇතුළත් කර නැත. ඔබේ පිළිතුර සුරැකිය හැකියි; ආදර්ශ පිළිතුර ඇතුළත් කළ පසු ලකුණු ලැබේ."}</div>`;
+  if(canWrite)h+=`<div class="aact aed"><button class="btn g aedit">✏️ ${model?"ආදර්ශ පිළිතුර සංස්කරණය කරන්න":"ආදර්ශ පිළිතුර ලියන්න"}</button></div>`;
+  el.innerHTML=h;
+  const msg=m=>el.querySelector(".amsg").textContent=m;
+  el.querySelector(".acheck").onclick=async()=>{const txt=el.querySelector(".apt").value.trim();if(!txt){msg("පළමුව පිළිතුරක් ලියන්න.");return}
+    const sc=model?score(q,txt):null;const rec={text:txt,updatedAt:new Date().toISOString()};
+    if(sc){rec.cov=+sc.cov.toFixed(3);rec.marks=sc.marks;rec.best=Math.max(sc.cov,PR[aid]&&PR[aid].best||0)}
+    msg("සුරකිමින්…");await savePR(aid,rec);if(sc&&rec.best>=UNLOCK&&!((r.best||0)>=UNLOCK))el.dataset.show="1";ansPanel(el);refreshAnsBtns(true);
+    const m2=el.querySelector(".amsg");if(m2)m2.textContent=sc?`ලකුණු ${sc.marks} / 10`:"සුරැකිණි."};
+  const sh=el.querySelector(".ashow");if(sh)sh.onclick=()=>{el.dataset.show=open?"":"1";ansPanel(el)};
   const e=el.querySelector(".aedit");if(e)e.onclick=()=>ansEdit(el)}
 function ansEdit(el){const aid=el.dataset.aid,txt=(ANS[aid]&&ANS[aid].text)||"";el.dataset.editing="1";
-  el.innerHTML=`<textarea class="ata" rows="8" aria-label="පිළිතුර">${esc(txt)}</textarea><div class="aact"><button class="btn asave">සුරකින්න</button><button class="btn g acancel">අවලංගු කරන්න</button>${txt?`<button class="btn g adel">මකන්න</button>`:""}<span class="amsg note"></span></div>`;
+  el.innerHTML=`<div class="note">ආදර්ශ පිළිතුර (සියලු දෙනාට පෙනේ). පේළියක් "## " න් ආරම්භ කළොත් මාතෘකාවක්, "> " න් පාළි පාඨයක්, "### " න් උප ප්‍රශ්නයක් ලෙස පෙන්වයි.</div><textarea class="ata" rows="12" aria-label="ආදර්ශ පිළිතුර">${esc(txt)}</textarea><div class="aact"><button class="btn asave">සුරකින්න</button><button class="btn g acancel">අවලංගු කරන්න</button>${txt?`<button class="btn g adel">මකන්න</button>`:""}<span class="amsg note"></span></div>`;
   const ta=el.querySelector(".ata");ta.focus();
   el.querySelector(".acancel").onclick=()=>{delete el.dataset.editing;ansPanel(el)};
   const msg=m=>el.querySelector(".amsg").textContent=m;
@@ -472,20 +545,25 @@ function ansEdit(el){const aid=el.dataset.aid,txt=(ANS[aid]&&ANS[aid].text)||"";
     catch(e){msg(e&&e.code==="invalid_argument"?"සුරැකීමට ඔබට අවසර නැත.":e&&e.code==="quota_exceeded"?"ගබඩාව පිරී ඇත.":"සුරැකීම අසාර්ථකයි. නැවත උත්සාහ කරන්න.")}};
   const dl=el.querySelector(".adel");if(dl)dl.onclick=async()=>{msg("මකමින්…");try{await DB.collection("answers").doc(aid).delete();ANS[aid]=undefined;delete el.dataset.editing;ansPanel(el);refreshAnsBtns()}catch(e){msg("මැකීම අසාර්ථකයි.")}};
 }
-function refreshAnsBtns(){document.querySelectorAll(".abtn").forEach(b=>{const has=ANS[b.dataset.aid]&&ANS[b.dataset.aid].text;b.classList.toggle("has",!!has);b.textContent=has?"📖 පිළිතුර":"📝 පිළිතුර"});
-  document.querySelectorAll(".ans:not([hidden])").forEach(el=>{if(!el.dataset.editing)ansPanel(el)});const pc=document.getElementById("ansCount");if(pc)pc.textContent=ansCountTxt()}
-const ansCountTxt=()=>{const qs=curPapers().flatMap(p=>p.qs);return ansReady?`පිළිතුරු ${qs.filter(q=>ANS[q.aid]&&ANS[q.aid].text).length} / ${qs.length}`:""};
+function paperScore(p){const rs=p.qs.map(q=>PR[q.aid]).filter(r=>r&&typeof r.marks==="number");if(!rs.length)return "";
+  const sum=rs.reduce((a,r)=>a+r.marks,0);return `ඔබේ ලකුණු ${sum} / ${p.qs.length*10}${rs.length<p.qs.length?` (ප්‍රශ්න ${rs.length}ක්)`:""}`}
+function refreshAnsBtns(keepPanels){document.querySelectorAll(".abtn").forEach(b=>{const aid=b.dataset.aid,has=ANS[aid]&&ANS[aid].text,r=PR[aid];b.classList.toggle("has",!!has);b.classList.toggle("ok",!!(r&&r.best>=UNLOCK));b.textContent=btnLabel(aid)});
+  if(!keepPanels)document.querySelectorAll(".ans:not([hidden])").forEach(el=>{if(!el.dataset.editing&&!(document.activeElement&&el.contains(document.activeElement)))ansPanel(el)});
+  document.querySelectorAll(".pscore").forEach(s=>{const p=DATA.find(x=>x.key===s.dataset.k);if(p)s.textContent=paperScore(p)});
+  const pc=document.getElementById("ansCount");if(pc)pc.textContent=ansCountTxt()}
+const ansCountTxt=()=>{const qs=curPapers().flatMap(p=>p.qs);return ansReady?`ආදර්ශ පිළිතුරු ${qs.filter(q=>ANS[q.aid]&&ANS[q.aid].text).length} / ${qs.length}`:""};
 let ansTried=false;
-setTimeout(async()=>{try{const c=window.claude&&await window.claude.use("db");DB=c||null;
+setTimeout(async()=>{try{PR=lsPR();
+  const c=window.claude&&await window.claude.use("db");DB=c||null;
   const u=window.claude&&await window.claude.use("user");
-  if(u){const w=u.can?await u.can("data.write"):null;canWrite=!!(u.canEdit&&await u.canEdit())||w===true}
+  if(u){canWrite=!!(u.canEdit&&await u.canEdit());try{UID=u.id?await u.id():null}catch(e){UID=null}}
   ansTried=true;
-  if(!DB){ // outside claude.ai (e.g. GitHub Pages): read answers from answers.json beside the page, read-only
-    if(!window.claude){try{const r=await fetch("answers.json",{cache:"no-cache"});if(r.ok){const j=await r.json();ANS=j&&typeof j==="object"?j:{};ansReady=true}}catch(e){}}
-    if(!ansReady&&!window.claude)ansReady=true;
-    refreshAnsBtns();return}
+  if(!DB){ // outside claude.ai (e.g. GitHub Pages): model answers from answers.json beside the page; practice kept in this browser
+    if(!window.claude){try{const r=await fetch("answers.json",{cache:"no-cache"});if(r.ok){const j=await r.json();ANS=j&&typeof j==="object"?j:{}}}catch(e){}}
+    ansReady=true;refreshAnsBtns();return}
+  if(UID)DB.collection("data/users/"+UID).onSnapshot(snap=>{const m=lsPR();snap.docs.forEach(d=>{if(d.exists)m[d.id]=d.data()});PR=m;refreshAnsBtns()},()=>{});
   DB.collection("answers").onSnapshot(snap=>{const m={};snap.docs.forEach(d=>{if(d.exists)m[d.id]=d.data()});ANS=m;ansReady=true;refreshAnsBtns()},()=>{ansReady=true;refreshAnsBtns()});
- }catch(e){ansTried=true;refreshAnsBtns()}},0);
+ }catch(e){ansTried=true;ansReady=true;refreshAnsBtns()}},0);
 
 function bind(root){
   root.querySelectorAll(".mark").forEach(b=>b.onclick=()=>{const a=b.closest(".q"),k=a.dataset.key;done.has(k)?done.delete(k):done.add(k);store.set("done",[...done]);a.classList.toggle("done",done.has(k));b.textContent=done.has(k)?"✓ පාඩම් කළා":"පාඩම් කළා";if(st.view==="papers"){renderProgress();renderYears()}if(exP)examCount()});
@@ -516,7 +594,7 @@ function renderPaper(){
   const list=yearPapers(curPapers().length?curPapers():[p],p.y);
   const desc=x=>GRPD[x.p+"|"+x.l+"|"+x.grp]||(x.grp?GRPD[x.grp]:"")||"";
   const jump=list.length>1?`<div class="pjump">${list.map((x,i)=>`<a href="#pp${i}" data-i="${i}">${pLbl(x)}</a>`).join("")}</div>`:"";
-  $("#paper").innerHTML=`<h2 class="ytitle">${label(p)}${list.length>1?` · පත්‍ර ${list.length}`:""}</h2>`+jump+list.map((x,i)=>`<div class="ppart" id="pp${i}"><div class="card phead"><div class="row"><span class="t">${list.length>1?pLbl(x):label(x)+partLbl(x)}${list.length>1&&desc(x)?` <small class="pd">${desc(x)}</small>`:""}</span><span class="src">${x.src==="pdf"?"ස්කෑන් PDF එකෙන් ලියාගත්":"ප්‍රශ්න පත්‍ර පොතෙන්"}</span></div>${x.head.map(h=>`<div class="m">${esc(h)}</div>`).join("")}</div>${x.qs.map(q=>qCard(q)).join("")}</div>`).join("");
+  $("#paper").innerHTML=`<h2 class="ytitle">${label(p)}${list.length>1?` · පත්‍ර ${list.length}`:""}</h2>`+jump+list.map((x,i)=>`<div class="ppart" id="pp${i}"><div class="card phead"><div class="row"><span class="t">${list.length>1?pLbl(x):label(x)+partLbl(x)}${list.length>1&&desc(x)?` <small class="pd">${desc(x)}</small>`:""}</span><span class="src">${x.src==="pdf"?"ස්කෑන් PDF එකෙන් ලියාගත්":"ප්‍රශ්න පත්‍ර පොතෙන්"}</span></div><div class="pscore" data-k="${esc(x.key)}">${paperScore(x)}</div>${x.head.map(h=>`<div class="m">${esc(h)}</div>`).join("")}</div>${x.qs.map(q=>qCard(q)).join("")}</div>`).join("");
   $("#paper").querySelectorAll(".pjump a").forEach(a=>a.onclick=e=>{e.preventDefault();const el=$("#pp"+a.dataset.i);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})});
   bind($("#paper"));
 }
