@@ -8,7 +8,7 @@
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
 </head>
 <body>
-<title>ත්‍රිපිටක විභාග</title>
+<title>ත්‍රිපිටක විභාග</title><title>ත්‍රිපිටක විභාග</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -279,6 +279,7 @@ mark{background:color-mix(in srgb,var(--gold) 30%,transparent);color:inherit;bor
 #pdfArea .xins{background:#f2f2f2!important}
 #pdfArea .card::before,#pdfArea .q::before{display:none!important}
 .apart{display:flex;flex-direction:column;gap:3px;margin:6px 0 4px}.asl{font-size:.88rem;line-height:1.4}.asl b{color:var(--acc2);margin-right:4px}.asl span{color:var(--mut)}
+.ashort{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,#2ea043 12%,transparent);border-left:4px solid #2ea043;display:flex;flex-direction:column;gap:6px;line-height:1.7}.ashort>b{color:#2ea043}
 .aess{margin-top:10px;padding:8px 10px;border:1.5px solid var(--gold);border-radius:8px;background:color-mix(in srgb,var(--gold) 10%,transparent);display:flex;flex-direction:column;gap:4px}.aess mark{padding:0 4px}.aper{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.85rem;margin-top:4px}.aper b{color:var(--acc2)}
 </style>
 
@@ -580,15 +581,20 @@ const KC={};
 // Only the strongest third (12–45 terms) count, so a learner's own wording of the main points can reach the 65% line.
 function keyTerms(q){const a=ANS[q.aid];if(!a||!a.text)return [];if(KC[q.aid]&&KC[q.aid].src===a.text)return KC[q.aid].k;
   const qn=nrm(q.t),D=df(),N=ALLQ.length,m={};
-  toks(a.text.split("\n").filter(l=>!l.startsWith("@@")).join("\n")).forEach(t=>{if(cpl(t)<3||/^\d+$/.test(t)||STOP.has(t))return;const s=stem(t);if(qn.includes(s)||(D[s]||0)>N*0.015)return;(m[s]=m[s]||{t,s,c:0}).c++});
+  toks(a.text.split("\n").filter(l=>!l.startsWith("@@")&&!l.startsWith("%%")).join("\n")).forEach(t=>{if(cpl(t)<3||/^\d+$/.test(t)||STOP.has(t))return;const s=stem(t);if(qn.includes(s)||(D[s]||0)>N*0.015)return;(m[s]=m[s]||{t,s,c:0}).c++});
   let k=Object.values(m).map(o=>(o.w=(1+Math.log(o.c))*Math.log((N+1)/((D[o.s]||0)+1)),o)).sort((x,y)=>y.w-x.w);
   k=k.slice(0,Math.max(12,Math.min(45,Math.ceil(k.length/3))));KC[q.aid]={src:a.text,k};return k}
 const mkNorm=m=>String(m||"").replace(/[().\s]/g,"");
 function essOf(text){const e={};let any=false;String(text||"").split("\n").forEach(l=>{const m=l.match(/^@@\s*([^|]*)\|(.*)$/);if(!m)return;const k=mkNorm(m[1])||"*";e[k]=(e[k]||[]).concat(m[2].split(";").map(x=>x.trim()).filter(Boolean));any=true});return any?e:null}
-function ptHit(pt,txt){const tl=toks(txt),tn=nrm(txt);
-  return pt.split("/").some(alt=>{const ts=toks(alt);if(!ts.length)return false;let h=0;
-    ts.forEach(t=>{if(/^\d+$/.test(t)){if(new RegExp("(^|[^0-9])"+t+"([^0-9]|$)").test(tn))h++}else{const st=stem(t);if(tl.some(x=>x.startsWith(st)))h++}});
-    return h/ts.length>=0.6})}
+// "!term" = the student must say the term is NOT the case: the term and a negation word in the same sentence
+const NEG=/(නොවේ|නොවෙ|නොවන|නොවූ|නොවී|නොවෙයි|නැත|නැති|නැහැ|නෑ|නොකළ|නොවේද|නොලැබ)/;
+function altHit(alt,txt){const tl=toks(txt),tn=nrm(txt),ts=toks(alt);if(!ts.length)return false;let h=0;
+  ts.forEach(t=>{if(/^\d+$/.test(t)){if(new RegExp("(^|[^0-9])"+t+"([^0-9]|$)").test(tn))h++}else{const st=stem(t);if(tl.some(x=>x.startsWith(st)))h++}});
+  return h/ts.length>=0.6}
+function ptHit(pt,txt){return pt.split("/").some(a=>{a=a.trim();if(a.startsWith("!")){const term=a.slice(1);
+    return nrm(txt).split(/[.;\n!?।]+/).some(s=>NEG.test(s)&&altHit(term,s))}return altHit(a,txt)})}
+const ptLabel=p=>{const a=p.split("/")[0].trim();return a.startsWith("!")?a.slice(1)+" නොවේ / නැත":a};
+function shortOf(text){return String(text||"").split("\n").map(l=>l.match(/^%%\s*([^|]*)\|(.*)$/)).filter(Boolean).map(m=>({mk:m[1].trim(),t:m[2].trim()}))}
 function score(q,txt,parts){const a=ANS[q.aid];const E=a&&essOf(a.text);
   if(E){const subs=subParts(q),keys=Object.keys(E);let groups=[];
     if(subs.length>=2&&keys.some(k=>k!=="*")){subs.forEach((sb,j)=>{const k=mkNorm(sb.mk);if(E[k]&&!groups.some(g=>g.k===k))groups.push({k,mk:sb.mk,pts:E[k],txt:parts&&parts.length===subs.length?(parts[j]||""):txt})});
@@ -596,14 +602,15 @@ function score(q,txt,parts){const a=ANS[q.aid];const E=a&&essOf(a.text);
     else groups=[{k:"*",mk:"",pts:keys.flatMap(k=>E[k]),txt}];
     let tot=0,hitN=0,sum=0;const miss=[],per=[];
     groups.forEach(g=>{const h=g.pts.filter(p=>ptHit(p,g.txt));tot+=g.pts.length;hitN+=h.length;const f=h.length/g.pts.length;sum+=f;
-      per.push({mk:g.mk,f,h:h.length,n:g.pts.length});g.pts.filter(p=>!h.includes(p)).forEach(p=>miss.push((g.mk?g.mk+" ":"")+p.split("/")[0]))});
+      per.push({mk:g.mk,f,h:h.length,n:g.pts.length});g.pts.filter(p=>!h.includes(p)).forEach(p=>miss.push((g.mk?g.mk+" ":"")+ptLabel(p)))});
     const cov=sum/groups.length;const w=10/groups.length;
     return {ess:true,cov,marks:Math.min(10,Math.round(cov*20)/2),hit:hitN,total:tot,miss,per:per.map(x=>({mk:x.mk,m:Math.round(x.f*w*2)/2,w:Math.round(w*10)/10,h:x.h,n:x.n}))}}
   const keys=keyTerms(q);if(!keys.length)return null;const n=nrm(txt);const hit=keys.filter(k=>n.includes(k.s));const cov=hit.length/keys.length;
   return {cov,marks:Math.min(10,Math.round(cov*20)/2),hit:hit.length,total:keys.length,miss:keys.filter(k=>!n.includes(k.s)).map(k=>k.t)}}
 const pct=x=>Math.round(x*100)+"%";
 // render a model answer: "## " heading, "### " sub-question, "> " Pali, "※ " note
-function renderModel(txt){const E=essOf(txt);const L=txt.split("\n").filter(l=>!l.startsWith("@@")),o=[];let tb=null;
+function renderModel(txt){const E=essOf(txt),S=shortOf(txt);const L=txt.split("\n").filter(l=>!l.startsWith("@@")&&!l.startsWith("%%")),o=[];let tb=null;
+  if(S.length)o.push(`<div class="ashort"><b>✅ කෙටි පිළිතුර</b> <span class="note">(මෙපමණ ලිවීම ප්‍රමාණවත්; පහත විස්තරය අවබෝධය සඳහායි)</span>${S.map(s=>`<div>${s.mk?`<b>${esc(s.mk)}</b> `:""}${esc(s.t)}</div>`).join("")}</div><div class="ah">📖 විස්තරාත්මක පිළිතුර</div>`);
   const flush=()=>{if(tb){o.push(`<div class="atw"><table class="atb">${tb.map((r,i)=>`<tr>${r.map(c=>i?`<td>${esc(c)}</td>`:`<th>${esc(c)}</th>`).join("")}</tr>`).join("")}</table></div>`);tb=null}};
   for(const l of L){
     if(/^\|.*\|\s*$/.test(l)){const cells=l.trim().slice(1,-1).split("|").map(c=>c.trim());if(cells.every(c=>/^:?-{2,}:?$/.test(c)))continue;(tb=tb||[]).push(cells);continue}
@@ -612,7 +619,7 @@ function renderModel(txt){const E=essOf(txt);const L=txt.split("\n").filter(l=>!
     else if(l.startsWith("> "))o.push(`<div class="apali">${esc(l.slice(2))}</div>`);else if(l.startsWith("※ "))o.push(`<div class="anote">${esc(l.slice(2))}</div>`);
     else if(/^\s{2,}\S/.test(l))o.push(`<div class="ain">${esc(l.trim())}</div>`);
     else o.push(l.trim()?`<div>${esc(l)}</div>`:`<div class="asp"></div>`)}
-  flush();if(E)o.push(`<div class="aess"><b>📌 අත්‍යවශ්‍ය කරුණු</b> <span class="note">(ලකුණු දෙන්නේ මේ කරුණුවලටයි)</span>${Object.entries(E).map(([k,v])=>`<div>${k!=="*"?`<b>${esc(k)}.</b> `:""}${v.map(x=>`<mark>${esc(x.split("/")[0])}</mark>`).join(" · ")}</div>`).join("")}</div>`);return o.join("")}
+  flush();if(E)o.push(`<div class="aess"><b>📌 අත්‍යවශ්‍ය කරුණු</b> <span class="note">(ලකුණු දෙන්නේ මේ කරුණුවලටයි)</span>${Object.entries(E).map(([k,v])=>`<div>${k!=="*"?`<b>${esc(k)}.</b> `:""}${v.map(x=>`<mark>${esc(ptLabel(x))}</mark>`).join(" · ")}</div>`).join("")}</div>`);return o.join("")}
 // practice storage
 const lsPR=()=>{try{return JSON.parse(localStorage.getItem("tvib:pr")||"{}")}catch(e){return {}}};
 async function savePR(aid,rec){PR[aid]=rec;
