@@ -278,6 +278,7 @@ mark{background:color-mix(in srgb,var(--gold) 30%,transparent);color:inherit;bor
 #pdfArea *{color:#111!important}
 #pdfArea .xins{background:#f2f2f2!important}
 #pdfArea .card::before,#pdfArea .q::before{display:none!important}
+.apart{display:flex;flex-direction:column;gap:3px;margin:6px 0 4px}.asl{font-size:.88rem;line-height:1.4}.asl b{color:var(--acc2);margin-right:4px}.asl span{color:var(--mut)}
 </style>
 
 <header class="bar"><div class="bar-in">
@@ -604,12 +605,19 @@ const ansBtn=q=>{const has=ANS[q.aid]&&ANS[q.aid].text,r=PR[q.aid];
   return `<button class="abtn${has?" has":""}${r&&r.best>=UNLOCK?" ok":""}" data-aid="${q.aid}">${btnLabel(q.aid)}</button>`};
 const btnLabel=aid=>{const r=PR[aid];if(r&&typeof r.marks==="number")return `✍️ පිළිතුර · ${r.marks}/10`;return ANS[aid]&&ANS[aid].text?"✍️ පිළිතුර ලියන්න":"📝 පිළිතුර"};
 const qOf=aid=>ALLQ.find(q=>q.aid===aid);
+function subParts(q){if(!q||!q.t)return [];const out=[];
+  q.t.split("\n").forEach(l=>{const m=l.match(SUBRX);if(!m)return;let mk=m[1].trim();const txt=l.slice(m[0].length).replace(/\([^()]*\/[^()]*\)/g,"(…)").trim();
+    if(/^\*$/.test(mk))mk="•";out.push({mk,txt:[...txt].length>70?[...txt].slice(0,68).join("")+"…":txt})});
+  return out}
 function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.text||"",r=PR[aid]||{},open=el.dataset.show==="1";
   const unlocked=(r.best||0)>=UNLOCK;
   let h="";
   if(!ansReady&&!ansTried){el.innerHTML=`<div class="aempty">පිළිතුරු පූරණය වෙමින්…</div>`;return}
   const qno=q&&q.n?String(q.n):"";
-  h+=`<label class="alab" for="pt-${aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label><textarea class="ata apt" id="pt-${aid}" rows="7" placeholder="${qno?`ප්‍රශ්න අංක ${esc(qno)} සඳහා `:"ප්‍රශ්නයට "}ඔබේ පිළිතුර මෙහි ලියන්න…">${esc(r.text||"")}</textarea>`;
+  const subs=subParts(q);
+  if(subs.length>=2){const parts=Array.isArray(r.parts)&&r.parts.length===subs.length?r.parts:(r.text?[r.text,...subs.slice(1).map(()=>"")]:subs.map(()=>""));
+    h+=`<div class="alab">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර <span class="note">(උප ප්‍රශ්න ${subs.length})</span></div>`+subs.map((sb,j)=>`<div class="apart"><label class="asl" for="pt-${aid}-${j}"><b>${qno?esc(qno)+" ":""}${esc(sb.mk)}</b> <span>${esc(sb.txt)}</span></label><textarea class="ata apt apt-p" id="pt-${aid}-${j}" data-i="${j}" rows="${subs.length>5?2:4}" placeholder="${esc(sb.mk)} සඳහා පිළිතුර…">${esc(parts[j]||"")}</textarea></div>`).join("")}
+  else h+=`<label class="alab" for="pt-${aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label><textarea class="ata apt" id="pt-${aid}" rows="7" placeholder="${qno?`ප්‍රශ්න අංක ${esc(qno)} සඳහා `:"ප්‍රශ්නයට "}ඔබේ පිළිතුර මෙහි ලියන්න…">${esc(r.text||"")}</textarea>`;
   h+=`<div class="aact"><button class="btn acheck">${model?"පිළිතුර පරීක්ෂා කරන්න":"සුරකින්න"}</button><span class="amsg note"></span></div>`;
   if(model&&typeof r.cov==="number"){h+=`<div class="ascore"><div class="arow"><b class="amarks">ලකුණු ${r.marks} / 10</b><span>ප්‍රධාන කරුණු ආවරණය ${pct(r.cov)}${r.best>r.cov?` · හොඳම ${pct(r.best)}`:""}</span></div>
      <div class="abar"><i style="width:${Math.min(100,r.cov*100)}%"></i><u style="left:${UNLOCK*100}%"></u></div>
@@ -620,8 +628,10 @@ function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.
   if(canWrite)h+=`<div class="aact aed"><button class="btn g aedit">✏️ ${model?"ආදර්ශ පිළිතුර සංස්කරණය කරන්න":"ආදර්ශ පිළිතුර ලියන්න"}</button></div>`;
   el.innerHTML=h;
   const msg=m=>el.querySelector(".amsg").textContent=m;
-  el.querySelector(".acheck").onclick=async()=>{const txt=el.querySelector(".apt").value.trim();if(!txt){msg("පළමුව පිළිතුරක් ලියන්න.");return}
-    const sc=model?score(q,txt):null;const rec={text:txt,updatedAt:new Date().toISOString()};
+  el.querySelector(".acheck").onclick=async()=>{const pp=[...el.querySelectorAll(".apt-p")];let parts=null,txt;
+    if(pp.length){parts=pp.map(t=>t.value.trim());txt=parts.map((v,j)=>v?`${subs[j].mk} ${v}`:"").filter(Boolean).join("\n")}else txt=el.querySelector(".apt").value.trim();
+    if(!txt){msg("පළමුව පිළිතුරක් ලියන්න.");return}
+    const sc=model?score(q,txt):null;const rec={text:txt,updatedAt:new Date().toISOString()};if(parts)rec.parts=parts;
     if(sc){rec.cov=+sc.cov.toFixed(3);rec.marks=sc.marks;rec.best=Math.max(sc.cov,PR[aid]&&PR[aid].best||0)}
     msg("සුරකිමින්…");await savePR(aid,rec);if(sc&&rec.best>=UNLOCK&&!((r.best||0)>=UNLOCK))el.dataset.show="1";ansPanel(el);refreshAnsBtns(true);
     const m2=el.querySelector(".amsg");if(m2)m2.textContent=sc?`ලකුණු ${sc.marks} / 10`:"සුරැකිණි."};
