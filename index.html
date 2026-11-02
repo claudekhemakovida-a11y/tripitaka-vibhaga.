@@ -270,7 +270,10 @@ mark{background:color-mix(in srgb,var(--gold) 30%,transparent);color:inherit;bor
 #paper.sheet .qt{font-size:1.06rem;line-height:1.75}
 #paper.sheet mark{background:#ffe9a8;color:#111}
 #pdfArea{position:fixed;left:-12000px;top:0;background:#fff;color:#111;padding:0;gap:0;font-size:16px}
-#pdfArea .q{display:grid!important;grid-template-columns:2rem 1fr;border:0!important;border-bottom:1px solid #ccc!important;padding:10px 4px!important;background:#fff!important;box-shadow:none!important}
+#pdfArea .q{display:grid!important;grid-template-columns:2rem 1fr;border:0!important;padding:1px 4px!important;background:#fff!important;box-shadow:none!important;border-radius:0!important}
+#pdfArea .q.pfirst{padding-top:10px!important}
+#pdfArea .q.plast{border-bottom:1px solid #ccc!important;padding-bottom:10px!important}
+#pdfArea .qsub,#pdfArea .qln{margin:0!important}
 #pdfArea .phead{border:0!important;box-shadow:none!important;background:#fff!important}
 #pdfArea *{color:#111!important}
 #pdfArea .xins{background:#f2f2f2!important}
@@ -507,7 +510,7 @@ function renderNav(){
 /* ---------- exam-paper layout helpers ---------- */
 const INST="ශ්‍රී කල්‍යාණී යෝගාශ්‍රම සංස්ථාව";
 const SUBRX=/^\s*(\(?(?:[ivx]{1,4})[.)]|\(?[අආඇඈඉඊඋඌඑඒ][.)]|\([අආඇඈඉඊඋඌඑඒ]\)|\(?\d{1,2}[.)]|\*)\s+/;
-const OPT_STRIP=/^\s*(?:\(?\d{1,2}[.)]|\((?:i|ii|iii|iv|v|vi)\)|[ivx]{1,4}\.)\s*/;
+const OPT_STRIP=/^\s*(?:\(?\d{1,2}[.)]|\(?(?:i|ii|iii|iv|v|vi)\)|[ivx]{1,4}\.)\s*/;
 function cleanOpts(parts){parts=parts.map(x=>x.replace(OPT_STRIP,"").replace(/[\s,;/]+$/,"").trim()).filter(Boolean);
   if(parts.length<2||parts.length>7||parts.some(x=>[...x].length>90))return null;return parts}
 function optSplit(inner){
@@ -519,8 +522,8 @@ function fmtLine(l,q){
   if(sm){mk=sm[1];t=l.slice(sm[0].length)}
   let opts=null,body=t;
   // inline roman options:  ... (i) a, (ii) b, (iii) c : rest
-  const ri=t.match(/^(.*?\S)\s*\(i\)\s*(.+?\(ii\).+?)(?:\s+:\s*(.*))?$/);
-  if(ri){const o=cleanOpts(ri[2].split(/\s*,?\s*(?=\((?:ii|iii|iv|v|vi)\))/));if(o){opts=o;body=ri[1]+(ri[3]?" …… "+ri[3]:" ……")}}
+  const ri=t.match(/^(.*?\S)\s+\(?i\)\s*(.+?[\s,]\(?ii\).+?)(?:\s+:\s*(.*))?$/);
+  if(ri){const o=cleanOpts(ri[2].split(/[\s,]+(?=\(?(?:ii|iii|iv|v|vi)\))/));if(o){let tail=ri[3]||"";const L=o.length-1,m2=o[L].match(/^(.*?)\s*(?::\s+|\s+(?=යන\s|යනුවෙන්|යැයි\s|නම්\s|වශයෙන්))(.*)$/);if(!tail&&m2&&m2[1]){o[L]=m2[1];tail=m2[2]}opts=o;body=ri[1]+(tail?" …… "+tail:" ……")}}
   if(!opts){const m=t.match(/\(([^()]*(?:\/|\s2[.)]\s)[^()]*)\)\s*([.:;,]?[^()]*)$/);
     if(m){const o=optSplit(m[1]);if(o){opts=o;const tail=(m[2]||"").trim();body=t.slice(0,m.index).trimEnd()+(tail&&!/^[.:;,]$/.test(tail)?" …… "+tail:" ……")}}}
   const oh=opts?`<ol class="qopts">${opts.map((o,i)=>`<li><span class="on">(${i+1})</span> ${hl(o,q)}</li>`).join("")}</ol>`:"";
@@ -693,9 +696,12 @@ async function downloadPdf(){if(pdfBusy)return;pdfBusy=true;const btn=$("#pdfBtn
   try{msg("⏳ PDF සකසමින්…");
     const {h2c,jsPDF}=await pdfLibs();
     try{if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
-    const W=760;const box=document.createElement("div");box.id="pdfArea";box.className="list sheet";box.style.width=W+"px";
+    const W=640;const box=document.createElement("div");box.id="pdfArea";box.className="list sheet";box.style.width=W+"px";
     box.innerHTML=$("#paper").innerHTML;document.body.appendChild(box);
     box.querySelectorAll(".ytitle,.ptools,.pjump,.meta,.ans,.prow").forEach(e=>e.remove());
+    box.querySelectorAll(".q").forEach(q=>{const n=(q.querySelector(".qn")||{}).textContent||"";const rows=[...(q.querySelector(".qt")||q).children];if(!rows.length)return;
+      const frag=document.createDocumentFragment();rows.forEach((r,i)=>{const d=document.createElement("article");d.className="q pq"+(i===rows.length-1?" plast":"")+(i===0?" pfirst":"");
+        d.innerHTML=`<div class="qn">${i===0?esc(n):""}</div><div class="qt"></div>`;d.querySelector(".qt").appendChild(r.cloneNode(true));frag.appendChild(d)});q.replaceWith(frag)});
     const doc=new jsPDF({unit:"mm",format:"a4",compress:true});
     const PW=210,PH=297,M=14,CW=PW-2*M;let y=M,first=true;
     const parts=[...box.querySelectorAll(".ppart")];let done=0,total=box.querySelectorAll(".phead,.q").length;
@@ -711,7 +717,7 @@ async function downloadPdf(){if(pdfBusy)return;pdfBusy=true;const btn=$("#pdfBtn
           while(sy<c.height){const hh=Math.min(sliceH,c.height-sy);const t=document.createElement("canvas");t.width=c.width;t.height=hh;t.getContext("2d").drawImage(c,0,sy,c.width,hh,0,0,c.width,hh);
             if(y>M){doc.addPage();y=M}
             doc.addImage(t.toDataURL("image/jpeg",0.85),"JPEG",M,y,CW,hh*CW/c.width);y+=hh*CW/c.width+3;sy+=hh}
-        }else{doc.addImage(c.toDataURL("image/jpeg",0.85),"JPEG",M,y,CW,h);y+=h+3}
+        }else{doc.addImage(c.toDataURL("image/jpeg",0.85),"JPEG",M,y,CW,h);y+=h+0.6}
         first=false;done++;msg(`⏳ PDF සකසමින්… ${Math.round(done/total*100)}%`)}
     }
     const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(9);doc.setTextColor(120);doc.text(`${i} / ${n}`,PW/2,PH-6,{align:"center"})}
