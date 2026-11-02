@@ -514,17 +514,24 @@ function renderNav(){
 /* ---------- exam-paper layout helpers ---------- */
 const INST="ශ්‍රී කල්‍යාණී යෝගාශ්‍රම සංස්ථාව";
 const SUBRX=/^\s*(\(?(?:[ivx]{1,4})[.)]|\(?[අආඇඈඉඊඋඌඑඒ][.)]|\([අආඇඈඉඊඋඌඑඒ]\)|\(?\d{1,2}[.)]|\*)\s+/;
-function optSplit(inner){const parts=inner.split(/\s\/\s|\s\/|\/\s/).map(x=>x.trim()).filter(Boolean);
-  if(parts.length<2||parts.length>7||parts.some(x=>[...x].length>70))return null;return parts}
+const OPT_STRIP=/^\s*(?:\(?\d{1,2}[.)]|\((?:i|ii|iii|iv|v|vi)\)|[ivx]{1,4}\.)\s*/;
+function cleanOpts(parts){parts=parts.map(x=>x.replace(OPT_STRIP,"").replace(/[\s,;/]+$/,"").trim()).filter(Boolean);
+  if(parts.length<2||parts.length>7||parts.some(x=>[...x].length>90))return null;return parts}
+function optSplit(inner){
+  if(/^\s*\(?1[.)]\s/.test(inner)&&/\s\(?2[.)]\s/.test(inner))return cleanOpts(inner.split(/\s*,?\s*(?=\(?\d{1,2}[.)]\s)/));
+  if(!/\//.test(inner))return null;
+  return cleanOpts(inner.split(/\s\/\s|\s\/|\/\s/))}
 function fmtLine(l,q){
-  // multiple-choice options "( a / b / c )" -> vertical numbered list
-  let opts=null,body=l;
-  const m=l.match(/\(([^()]*\/[^()]*)\)\s*([.:;,]?[^()]*)$/);
-  if(m){const o=optSplit(m[1]);if(o){opts=o;body=l.slice(0,m.index).trimEnd()+(m[2]&&m[2].trim()&&!/^[.:;,]$/.test(m[2].trim())?" …… "+m[2].trim():" ……")}}
-  const sm=body.match(SUBRX);let mk="",txt=body;
-  if(sm){mk=sm[1];txt=body.slice(sm[0].length)}
+  const sm=l.match(SUBRX);let mk="",t=l;
+  if(sm){mk=sm[1];t=l.slice(sm[0].length)}
+  let opts=null,body=t;
+  // inline roman options:  ... (i) a, (ii) b, (iii) c : rest
+  const ri=t.match(/^(.*?\S)\s*\(i\)\s*(.+?\(ii\).+?)(?:\s+:\s*(.*))?$/);
+  if(ri){const o=cleanOpts(ri[2].split(/\s*,?\s*(?=\((?:ii|iii|iv|v|vi)\))/));if(o){opts=o;body=ri[1]+(ri[3]?" …… "+ri[3]:" ……")}}
+  if(!opts){const m=t.match(/\(([^()]*(?:\/|\s2[.)]\s)[^()]*)\)\s*([.:;,]?[^()]*)$/);
+    if(m){const o=optSplit(m[1]);if(o){opts=o;const tail=(m[2]||"").trim();body=t.slice(0,m.index).trimEnd()+(tail&&!/^[.:;,]$/.test(tail)?" …… "+tail:" ……")}}}
   const oh=opts?`<ol class="qopts">${opts.map((o,i)=>`<li><span class="on">(${i+1})</span> ${hl(o,q)}</li>`).join("")}</ol>`:"";
-  return mk?`<div class="qsub"><span class="qmk">${esc(mk)}</span><div>${hl(txt,q)}${oh}</div></div>`:`<div class="qln">${hl(txt,q)}${oh}</div>`}
+  return mk?`<div class="qsub"><span class="qmk">${esc(mk)}</span><div>${hl(body,q)}${oh}</div></div>`:`<div class="qln">${hl(body,q)}${oh}</div>`}
 function fmtQ(t,q){return String(t||"").split("\n").filter(l=>l.trim()).map(l=>fmtLine(l,q)).join("")}
 function headInfo(x){const info={sub:[],ins:[],marks:"",time:""};
   (x.head||[]).forEach(h0=>{const h=h0.replace(/^[\s:\-–|]+/,"").trim();if(!h)return;
