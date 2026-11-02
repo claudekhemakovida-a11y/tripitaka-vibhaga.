@@ -608,13 +608,14 @@ function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.
   const unlocked=(r.best||0)>=UNLOCK;
   let h="";
   if(!ansReady&&!ansTried){el.innerHTML=`<div class="aempty">පිළිතුරු පූරණය වෙමින්…</div>`;return}
-  h+=`<label class="alab" for="pt-${aid}">ඔබේ පිළිතුර</label><textarea class="ata apt" id="pt-${aid}" rows="7" placeholder="ප්‍රශ්නයට ඔබේ පිළිතුර මෙහි ලියන්න…">${esc(r.text||"")}</textarea>`;
+  const qno=q&&q.n?String(q.n):"";
+  h+=`<label class="alab" for="pt-${aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label><textarea class="ata apt" id="pt-${aid}" rows="7" placeholder="${qno?`ප්‍රශ්න අංක ${esc(qno)} සඳහා `:"ප්‍රශ්නයට "}ඔබේ පිළිතුර මෙහි ලියන්න…">${esc(r.text||"")}</textarea>`;
   h+=`<div class="aact"><button class="btn acheck">${model?"පිළිතුර පරීක්ෂා කරන්න":"සුරකින්න"}</button><span class="amsg note"></span></div>`;
   if(model&&typeof r.cov==="number"){h+=`<div class="ascore"><div class="arow"><b class="amarks">ලකුණු ${r.marks} / 10</b><span>ප්‍රධාන කරුණු ආවරණය ${pct(r.cov)}${r.best>r.cov?` · හොඳම ${pct(r.best)}`:""}</span></div>
      <div class="abar"><i style="width:${Math.min(100,r.cov*100)}%"></i><u style="left:${UNLOCK*100}%"></u></div>
      <div class="note">${unlocked?"✓ ආදර්ශ පිළිතුර බැලීමට ඔබට හැකියි.":`ආදර්ශ පිළිතුර බැලීමට ප්‍රධාන කරුණුවලින් ${pct(UNLOCK)}ක් ආවරණය විය යුතුය. තවත් කරුණු එකතු කර නැවත පරීක්ෂා කරන්න.`}</div></div>`}
   if(model){h+=unlocked?`<div class="aact"><button class="btn g ashow">${open?"ආදර්ශ පිළිතුර සඟවන්න":"📖 ආදර්ශ පිළිතුර බලන්න"}</button></div>`:`<div class="alock">🔒 ආදර්ශ පිළිතුර – ${pct(UNLOCK)}ක ආවරණයකින් පසු විවෘත වේ</div>`;
-    if(unlocked&&open){const sc=score(q,r.text||"");h+=`<div class="atxt">${renderModel(model)}</div>`+(sc&&sc.miss.length?`<div class="amiss"><b>ඔබේ පිළිතුරේ නොතිබූ ප්‍රධාන පද:</b> ${sc.miss.slice(0,40).map(esc).join(", ")}</div>`:"")}}
+    if(unlocked&&open){const sc=score(q,r.text||"");h+=`<div class="atxt"><div class="ah">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ආදර්ශ පිළිතුර</div>${renderModel(model)}</div>`+(sc&&sc.miss.length?`<div class="amiss"><b>ඔබේ පිළිතුරේ නොතිබූ ප්‍රධාන පද:</b> ${sc.miss.slice(0,40).map(esc).join(", ")}</div>`:"")}}
   else h+=`<div class="aempty">${ansTried&&!DB&&window.claude?"පිළිතුරු ගබඩාවට සම්බන්ධ විය නොහැක.":"මෙම ප්‍රශ්නයට ආදර්ශ පිළිතුර තවම ඇතුළත් කර නැත. ඔබේ පිළිතුර සුරැකිය හැකියි; ආදර්ශ පිළිතුර ඇතුළත් කළ පසු ලකුණු ලැබේ."}</div>`;
   if(canWrite)h+=`<div class="aact aed"><button class="btn g aedit">✏️ ${model?"ආදර්ශ පිළිතුර සංස්කරණය කරන්න":"ආදර්ශ පිළිතුර ලියන්න"}</button></div>`;
   el.innerHTML=h;
