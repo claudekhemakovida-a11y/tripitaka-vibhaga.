@@ -1,0 +1,17 @@
+{
+  "name": "ත්‍රිපිටක විභාග",
+  "short_name": "ත්‍රිපිටක විභාග",
+  "description": "ශ්‍රී කල්‍යාණී යෝගාශ්‍රම සංස්ථාවේ ත්‍රිපිටක සහ උපසම්පදා විභාගවල පසුගිය ප්‍රශ්නපත්‍ර සහ ආදර්ශ පිළිතුරු",
+  "lang": "si",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0c0b",
+  "theme_color": "#0d0c0b",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

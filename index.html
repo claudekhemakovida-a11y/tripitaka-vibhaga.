@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="ශ්‍රී කල්‍යාණී යෝගාශ්‍රම සංස්ථාවේ ත්‍රිපිටක සහ උපසම්පදා විභාගවල පසුගිය ප්‍රශ්නපත්‍ර">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d0c0b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ත්‍රිපිටක විභාග">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="logo-art2.png">
 <style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}</style>
 </head>
@@ -822,5 +829,27 @@ document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{st.view=b
 let deb;$("#q").oninput=e=>{clearTimeout(deb);deb=setTimeout(()=>{st.q=e.target.value;shown=40;renderSearch()},200)};
 $("#scopeSel").onchange=e=>{st.scope=e.target.value;shown=40;renderSearch()};
 go();
+</script>
+<div id="pwaBar" hidden><span id="pwaMsg">📲 මෙම ඇප් එක ඔබේ දුරකථනයේ හෝම් ස්ක්‍රීන් එකට එකතු කරගන්න</span><button id="pwaGo">ස්ථාපනය කරන්න</button><button id="pwaX" aria-label="වසන්න">✕</button></div>
+<style>
+#pwaBar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:9999;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;background:#2a1a10;color:#efe3c8;border:1px solid #b08a2e;box-shadow:0 6px 24px rgba(0,0,0,.35);font:600 14px/1.5 "Noto Sans Sinhala",sans-serif}
+#pwaBar[hidden]{display:none}#pwaMsg{flex:1}
+#pwaGo{border:0;border-radius:10px;padding:8px 12px;background:linear-gradient(170deg,#e0bb5a,#a8741b);color:#2b1c10;font:inherit;cursor:pointer;white-space:nowrap}
+#pwaX{border:0;background:none;color:inherit;font-size:16px;cursor:pointer;padding:4px 6px}
+</style>
+<script>
+(function(){
+  if("serviceWorker" in navigator){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
+  var bar=document.getElementById("pwaBar"),go=document.getElementById("pwaGo"),msg=document.getElementById("pwaMsg"),dp=null;
+  var standalone=matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+  var dismissed=false;try{dismissed=localStorage.getItem("tvib:pwaX")==="1"}catch(e){}
+  if(standalone||dismissed)return;
+  document.getElementById("pwaX").onclick=function(){bar.hidden=true;try{localStorage.setItem("tvib:pwaX","1")}catch(e){}};
+  addEventListener("beforeinstallprompt",function(e){e.preventDefault();dp=e;bar.hidden=false});
+  go.onclick=function(){if(dp){dp.prompt();dp.userChoice.then(function(){dp=null;bar.hidden=true})}};
+  addEventListener("appinstalled",function(){bar.hidden=true});
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+  if(ios){msg.textContent="📲 හෝම් ස්ක්‍රීන් එකට එකතු කිරීමට: පහළ ඇති Share (⬆️) බොත්තම ඔබා \"Add to Home Screen\" තෝරන්න";go.hidden=true;setTimeout(function(){bar.hidden=false},1500)}
+})();
 </script>
 </body></html>
