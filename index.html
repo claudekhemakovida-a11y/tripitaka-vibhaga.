@@ -243,6 +243,13 @@ mark{background:color-mix(in srgb,var(--gold) 30%,transparent);color:inherit;bor
 .exam-head{position:sticky;top:calc(env(safe-area-inset-top,0px) + 48px);z-index:5;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .clock{font-size:1.6rem;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums;font-family:var(--sans)}
 .clock.low{color:var(--bad)}
+.exbtns{display:flex;gap:6px;flex-wrap:wrap}.exconf{flex-basis:100%;color:var(--bad)}
+.exq .exa,.exr .exrow,.exr .aper,.exr .exdet{grid-column:1/-1}.exq .exa{margin-top:10px;border-top:1.5px dashed var(--line);padding-top:8px;display:flex;flex-direction:column;gap:8px}.exr .exdet{border-top:1.5px dashed var(--line);padding-top:8px}
+.exres-head{text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center}
+.exscore{display:flex;align-items:baseline;gap:6px;justify-content:center;font-family:var(--sans)}.exscore b{font-size:3rem;color:var(--acc2);line-height:1}.exscore span{font-size:1.2rem;color:var(--mut)}
+.exgrade{font-weight:700;color:var(--gold)}
+.exrow{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-top:8px}.exm{font-size:1.15rem;color:var(--ok)}.exr.low .exm{color:var(--bad)}.exr.low{border-left:4px solid var(--bad)}
+.exdet{margin-top:10px}.exmine{padding:8px 10px;border:1px dashed var(--line);border-radius:8px;margin:4px 0 10px;line-height:1.7}
 .more{align-self:center}
 @media(max-width:520px){h1{font-size:1.4rem}.pit .sep{display:none}.trow{grid-template-columns:minmax(0,8rem) 1fr 2rem}.pgrid{gap:6px}.xbt span{font-size:.84rem}.q{grid-template-columns:1.6rem 1fr;padding-right:12px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
@@ -380,13 +387,15 @@ mark{background:color-mix(in srgb,var(--gold) 30%,transparent);color:inherit;bor
     <section id="v-exam" hidden>
       <div id="examSetup" class="card list">
         <h2>ආදර්ශ විභාගය</h2>
-        <p class="note">ප්‍රශ්නපත්‍රයක් තෝරා, විභාග කාලය තුළ පිළිතුරු කඩදාසියක ලියන්න. ලියා අවසන් වූ ප්‍රශ්න සලකුණු කරන්න.</p>
+        <p class="note">ප්‍රශ්නපත්‍රයක් තෝරා, සැබෑ විභාගයක් මෙන් කාලය තුළ සියලු ප්‍රශ්නවලට මෙහිම පිළිතුරු ලියන්න. විභාගය අතරතුර ආදර්ශ පිළිතුරු සහ ලකුණු සැඟවී ඇත. අවසන් කළ විට හෝ කාලය ඉවර වූ විට ලකුණු 100 න් ලැබේ.</p>
+        <p class="note">✍️ ලකුණු ලැබෙන්නේ ආදර්ශ පිළිතුරු ඇතුළත් ප්‍රශ්නපත්‍රවලට පමණි.</p>
         <div class="tools"><select id="paperSel" aria-label="ප්‍රශ්නපත්‍රය"></select><button class="btn" id="startExam">ආරම්භ කරන්න</button></div>
       </div>
       <div id="examRun" hidden class="list">
-        <div class="card exam-head"><div><div id="examTitle" style="font-weight:700;color:var(--acc2)"></div><div class="note" id="examDone"></div></div><div class="clock" id="clock">00:00:00</div><button class="btn g" id="stopExam">අවසන් කරන්න</button></div>
+        <div class="card exam-head"><div><div id="examTitle" style="font-weight:700;color:var(--acc2)"></div><div class="note" id="examDone"></div></div><div class="clock" id="clock">00:00:00</div><div class="exbtns"><button class="btn" id="stopExam">අවසන් කර ලකුණු බලන්න</button><button class="btn g" id="quitExam">✕ අත්හරින්න</button></div><div class="exconf note" id="exConf" hidden></div></div>
         <div class="list" id="examList"></div>
       </div>
+      <div id="examRes" hidden class="list"></div>
     </section>
    </div>
   </div>
@@ -682,7 +691,7 @@ function ansEdit(el){const aid=el.dataset.aid,txt=(ANS[aid]&&ANS[aid].text)||"";
 }
 function paperScore(p){const rs=p.qs.map(q=>PR[q.aid]).filter(r=>r&&typeof r.marks==="number");if(!rs.length)return "";
   const sum=rs.reduce((a,r)=>a+r.marks,0);return `ඔබේ ලකුණු ${sum} / ${p.qs.length*10}${rs.length<p.qs.length?` (ප්‍රශ්න ${rs.length}ක්)`:""}`}
-function refreshAnsBtns(keepPanels){document.querySelectorAll(".abtn").forEach(b=>{const aid=b.dataset.aid,has=ANS[aid]&&ANS[aid].text,r=PR[aid];b.classList.toggle("has",!!has);b.classList.toggle("ok",!!(r&&r.best>=UNLOCK));b.textContent=btnLabel(aid)});
+function refreshAnsBtns(keepPanels){if(st.view==="exam"&&!exP&&$("#examRes").hidden)try{renderExamSel()}catch(e){}document.querySelectorAll(".abtn").forEach(b=>{const aid=b.dataset.aid,has=ANS[aid]&&ANS[aid].text,r=PR[aid];b.classList.toggle("has",!!has);b.classList.toggle("ok",!!(r&&r.best>=UNLOCK));b.textContent=btnLabel(aid)});
   if(!keepPanels)document.querySelectorAll(".ans:not([hidden])").forEach(el=>{if(!el.dataset.editing&&!(document.activeElement&&el.contains(document.activeElement)))ansPanel(el)});
   document.querySelectorAll(".pscore").forEach(s=>{const p=DATA.find(x=>x.key===s.dataset.k);if(p)s.textContent=paperScore(p)});
   const pc=document.getElementById("ansCount");if(pc)pc.textContent=ansCountTxt()}
@@ -808,13 +817,69 @@ function renderTopics(){
   $("#topicList").innerHTML=rows.length?rows.map(([t,v])=>`<button class="trow" data-t="${esc(t)}"><span>${t}</span><span class="tb"><i style="width:${v.n/max*100}%"></i></span><span class="c">${v.n}</span><span class="ys">${[...v.y].sort().join(", ")}</span></button>`).join(""):`<div class="empty">මාතෘකා නැත.</div>`;
   $("#topicList").querySelectorAll(".trow").forEach(b=>b.onclick=()=>{st.tag=b.dataset.t;st.q="";$("#q").value="";st.scope="lv";st.view="search";go()});
 }
-let timer=null,endAt=0,exP=null;
-function renderExamSel(){const ps=curPapers().slice().reverse();$("#paperSel").innerHTML=ps.map(p=>`<option value="${esc(p.key)}">${label(p)}${partLbl(p)} · ප්‍රශ්න ${p.qs.length} · පැය ${p.mins/60}</option>`).join("");$("#startExam").disabled=!ps.length}
-function examCount(){if(exP)$("#examDone").textContent=`ලියා අවසන්: ${exP.qs.filter(x=>done.has(x.key)).length} / ${exP.qs.length}`}
-function tick(){const s=Math.max(0,Math.round((endAt-Date.now())/1000)),f=n=>String(n).padStart(2,"0");$("#clock").textContent=s?`${f(Math.floor(s/3600))}:${f(Math.floor(s%3600/60))}:${f(s%60)}`:"කාලය අවසන්";$("#clock").classList.toggle("low",s<600);if(!s)clearInterval(timer)}
-function stopExam(){clearInterval(timer);exP=null;$("#examRun").hidden=true;$("#examSetup").hidden=false}
-$("#startExam").onclick=()=>{exP=DATA.find(p=>p.key===$("#paperSel").value);if(!exP)return;$("#examTitle").textContent=label(exP)+partLbl(exP);endAt=Date.now()+exP.mins*60000;$("#examSetup").hidden=true;$("#examRun").hidden=false;$("#examList").innerHTML=exP.qs.map(q=>qCard(q,{exam:1})).join("");bind($("#examList"));examCount();tick();clearInterval(timer);timer=setInterval(tick,1000)};
-$("#stopExam").onclick=stopExam;
+let timer=null,endAt=0,exP=null,exStart=0,exConfirm=null;
+const exHasAns=p=>p.qs.some(q=>ANS[q.aid]&&ANS[q.aid].text);
+const exAllAns=p=>p.qs.every(q=>ANS[q.aid]&&ANS[q.aid].text);
+function renderExamSel(){const ps=curPapers().slice().reverse();const cur=$("#paperSel").value;
+  $("#paperSel").innerHTML=ps.map(p=>`<option value="${esc(p.key)}">${exAllAns(p)?"✍️ ":exHasAns(p)?"✎ ":""}${label(p)}${partLbl(p)} · ප්‍රශ්න ${p.qs.length} · පැය ${p.mins/60}</option>`).join("");
+  if(cur&&ps.some(p=>p.key===cur))$("#paperSel").value=cur;$("#startExam").disabled=!ps.length}
+// drafts are kept in this browser so an accidental reload does not lose the answers
+const exDraftKey=()=>exP?"exdraft:"+exP.key:"";
+function exRead(){const out={};$("#examList").querySelectorAll(".exa").forEach(box=>{const aid=box.dataset.aid,tas=[...box.querySelectorAll("textarea")];out[aid]=tas.map(x=>x.value)});return out}
+function exSave(){if(!exP)return;store.set(exDraftKey(),{endAt,exStart,a:exRead()})}
+function examCount(){if(!exP)return;const a=exRead();const n=exP.qs.filter(q=>(a[q.aid]||[]).some(v=>v.trim())).length;$("#examDone").textContent=`පිළිතුරු ලියූ ප්‍රශ්න: ${n} / ${exP.qs.length}`}
+function exBox(q,prev){const subs=subParts(q),qno=q.n?String(q.n):"";prev=prev||[];
+  if(subs.length>=2)return `<div class="exa" data-aid="${q.aid}">${subs.map((sb,j)=>`<div class="apart"><label class="asl" for="ex-${q.aid}-${j}"><b>${qno?esc(qno)+" ":""}${esc(sb.mk)}</b> <span>${esc(sb.txt)}</span></label><textarea class="ata" id="ex-${q.aid}-${j}" rows="${subs.length>5?2:4}" placeholder="${esc(sb.mk)} සඳහා පිළිතුර…">${esc(prev[j]||"")}</textarea></div>`).join("")}</div>`;
+  return `<div class="exa" data-aid="${q.aid}"><label class="alab" for="ex-${q.aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label><textarea class="ata" id="ex-${q.aid}" rows="6" placeholder="පිළිතුර මෙහි ලියන්න…">${esc(prev[0]||"")}</textarea></div>`}
+function tick(){const s=Math.max(0,Math.round((endAt-Date.now())/1000)),f=n=>String(n).padStart(2,"0");$("#clock").textContent=s?`${f(Math.floor(s/3600))}:${f(Math.floor(s%3600/60))}:${f(s%60)}`:"කාලය අවසන්";$("#clock").classList.toggle("low",s<600);if(!s){clearInterval(timer);if(exP)finishExam(true)}}
+function stopExam(){clearInterval(timer);exP=null;exConfirm=null;$("#examRun").hidden=true;$("#examRes").hidden=true;$("#examSetup").hidden=false;$("#exConf").hidden=true}
+function runExam(p,draft){exP=p;exConfirm=null;$("#exConf").hidden=true;$("#examTitle").textContent=label(p)+partLbl(p);
+  exStart=draft&&draft.exStart||Date.now();endAt=draft&&draft.endAt||Date.now()+p.mins*60000;
+  $("#examSetup").hidden=true;$("#examRes").hidden=true;$("#examRun").hidden=false;
+  $("#examList").innerHTML=p.qs.map(q=>`<article class="q exq" data-key="${esc(q.key)}"><div class="qn">${q.n||"•"}</div><div class="qt">${fmtQ(q.t)}</div>${exBox(q,draft&&draft.a&&draft.a[q.aid])}</article>`).join("");
+  let sv;$("#examList").oninput=()=>{clearTimeout(sv);sv=setTimeout(()=>{exSave();examCount()},400)};
+  examCount();tick();clearInterval(timer);timer=setInterval(tick,1000);window.scrollTo&&window.scrollTo(0,0)}
+$("#startExam").onclick=()=>{const p=DATA.find(p=>p.key===$("#paperSel").value);if(!p)return;
+  const d=store.get("exdraft:"+p.key,null);
+  if(d&&d.endAt>Date.now()&&d.a&&Object.values(d.a).some(v=>v.some(x=>x&&x.trim()))){runExam(p,d);return}
+  runExam(p,null)};
+function exAsk(kind){const c=$("#exConf");if(exConfirm===kind){exConfirm=null;c.hidden=true;return true}
+  exConfirm=kind;c.hidden=false;c.textContent=kind==="stop"?"විභාගය අවසන් කර ලකුණු ගණනය කිරීමට නැවත \"අවසන් කර ලකුණු බලන්න\" ඔබන්න.":"ලියූ පිළිතුරු මැකී යයි. අත්හැරීමට නැවත \"✕ අත්හරින්න\" ඔබන්න.";
+  clearTimeout(exAsk.t);exAsk.t=setTimeout(()=>{exConfirm=null;c.hidden=true},6000);return false}
+$("#stopExam").onclick=()=>{if(exAsk("stop"))finishExam(false)};
+$("#quitExam").onclick=()=>{if(!exAsk("quit"))return;try{localStorage.removeItem("tvib:"+exDraftKey())}catch(e){}stopExam()};
+async function finishExam(timeUp){if(!exP)return;clearInterval(timer);const p=exP,a=exRead(),used=Math.min(Date.now(),endAt)-exStart;
+  const rows=p.qs.map(q=>{const vals=a[q.aid]||[],subs=subParts(q),model=ANS[q.aid]&&ANS[q.aid].text;
+    const parts=vals.length>1?vals.map(v=>v.trim()):null,txt=parts?parts.map((v,j)=>v?`${subs[j]?subs[j].mk:""} ${v}`:"").filter(Boolean).join("\n"):(vals[0]||"").trim();
+    const sc=model&&txt?score(q,txt,parts):null;return {q,txt,parts,model,sc,marks:model?(sc?sc.marks:0):null}});
+  const scored=rows.filter(r=>r.model),got=scored.reduce((s,r)=>s+r.marks,0),pct100=scored.length?Math.round(got/(scored.length*10)*1000)/10:null;
+  // keep each answer in the practice record too, so the question's own answer panel shows it
+  for(const r of rows){if(!r.txt)continue;const old=PR[r.q.aid]||{};const rec={text:r.txt,updatedAt:Date.now()};if(r.parts)rec.parts=r.parts;
+    if(r.sc){Object.assign(rec,{cov:r.sc.cov,marks:r.sc.marks,best:Math.max(old.best||0,r.sc.cov),ess:!!r.sc.ess,hit:r.sc.hit,total:r.sc.total});if(r.sc.per)rec.per=r.sc.per}
+    try{await savePR(r.q.aid,rec)}catch(e){}}
+  const hist=store.get("exhist",[]);if(pct100!=null){hist.unshift({key:p.key,at:Date.now(),score:pct100,used});store.set("exhist",hist.slice(0,50))}
+  try{localStorage.removeItem("tvib:exdraft:"+p.key)}catch(e){}
+  exP=null;$("#examRun").hidden=true;refreshAnsBtns(true);renderExamRes(p,rows,pct100,used,timeUp)}
+function renderExamRes(p,rows,pct100,used,timeUp){const el=$("#examRes"),f=n=>String(n).padStart(2,"0"),m=Math.round(used/60000);
+  const prev=store.get("exhist",[]).filter(h=>h.key===p.key).slice(1,4);
+  const grade=pct100==null?"":pct100>=75?"විශිෂ්ට":pct100>=65?"ඉතා හොඳයි":pct100>=50?"සාමාර්ථ":pct100>=35?"සාමාන්‍ය":"තවත් පුහුණු වන්න";
+  el.innerHTML=`<div class="card exres-head"><div class="note">${esc(label(p)+partLbl(p))}${timeUp?" · ⏰ කාලය අවසන් විය":""}</div>
+    ${pct100==null?`<h2>ලකුණු ගණනය කළ නොහැක</h2><p class="note">මෙම ප්‍රශ්නපත්‍රයට ආදර්ශ පිළිතුරු තවම ඇතුළත් කර නැත. ඔබේ පිළිතුරු සුරැකිණි.</p>`:
+    `<div class="exscore"><b>${pct100}</b><span>/ 100</span></div><div class="exgrade">${grade}</div>`}
+    <div class="note">ගත වූ කාලය: පැය ${Math.floor(m/60)} විනාඩි ${f(m%60)} · පිළිතුරු ලියූ ප්‍රශ්න ${rows.filter(r=>r.txt).length} / ${rows.length}${rows.some(r=>!r.model)?` · ආදර්ශ පිළිතුරු නැති ප්‍රශ්න ${rows.filter(r=>!r.model).length} ලකුණුවලට ගණන් නොගැනිණි`:""}</div>
+    ${prev.length?`<div class="note">කලින් ලකුණු: ${prev.map(h=>h.score).join(", ")}</div>`:""}
+    <div class="aact"><button class="btn" id="exAgain">🔁 නැවත කරන්න</button><button class="btn g" id="exBack">වෙනත් ප්‍රශ්නපත්‍රයක්</button></div></div>
+    ${rows.map((r,i)=>{const low=r.model&&r.marks<5;return `<article class="q exr${low?" low":""}"><div class="qn">${r.q.n||"•"}</div><div class="qt">${fmtQ(r.q.t)}</div>
+      <div class="exrow"><b class="exm">${r.model?`${r.marks} / 10`:"ලකුණු නැත"}</b>${r.sc&&r.sc.ess?`<span class="note">අත්‍යවශ්‍ය කරුණු ${r.sc.hit} / ${r.sc.total}</span>`:""}${!r.txt?`<span class="note">පිළිතුරක් ලියා නැත</span>`:""}${r.model?`<button class="btn g exshow" data-i="${i}">${low?"📖 ආදර්ශ පිළිතුර බලන්න":"ආදර්ශ පිළිතුර"}</button>`:""}</div>
+      ${r.sc&&Array.isArray(r.sc.per)&&r.sc.per.length>1?`<div class="aper">${r.sc.per.map(x=>`<span><b>${esc(x.mk)}</b> ${x.m}/${x.w}</span>`).join("")}</div>`:""}
+      <div class="exdet" hidden></div></article>`}).join("")}`;
+  el.hidden=false;$("#examSetup").hidden=true;window.scrollTo&&window.scrollTo(0,0);
+  el.querySelectorAll(".exshow").forEach(b=>b.onclick=()=>{const r=rows[+b.dataset.i],d=b.closest(".q").querySelector(".exdet");
+    if(!d.hidden){d.hidden=true;return}
+    d.innerHTML=(r.txt?`<div class="alab">ඔබේ පිළිතුර</div><div class="exmine">${esc(r.txt).replace(/\n/g,"<br>")}</div>`:"")+
+      `<div class="atxt"><div class="ah">${r.q.n?`ප්‍රශ්න අංක ${esc(String(r.q.n))} – `:""}ආදර්ශ පිළිතුර</div>${renderModel(r.model)}</div>`+
+      (r.sc&&r.sc.miss.length?`<div class="amiss"><b>${r.sc.ess?"ඔබේ පිළිතුරේ නොතිබූ අත්‍යවශ්‍ය කරුණු":"ඔබේ පිළිතුරේ නොතිබූ ප්‍රධාන පද"}:</b> ${r.sc.miss.slice(0,40).map(esc).join(", ")}</div>`:"");d.hidden=false});
+  $("#exAgain").onclick=()=>runExam(p,null);$("#exBack").onclick=()=>{stopExam();renderExamSel()}}
 $("#pback").onclick=closePanel;
 try{if(location.hash==="#panel")history.replaceState(null,"",location.pathname+location.search)}catch(e){}
 
@@ -823,7 +888,7 @@ function go(){save();renderNav();renderHome();
   if(st.view==="papers"){renderYears();renderProgress();renderPaper()}
   if(st.view==="search"){shown=40;renderSearch()}
   if(st.view==="topics")renderTopics();
-  if(st.view==="exam"&&!exP)renderExamSel();
+  if(st.view==="exam"&&!exP&&$("#examRes").hidden)renderExamSel();
 }
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{st.view=b.dataset.v;go()});
 let deb;$("#q").oninput=e=>{clearTimeout(deb);deb=setTimeout(()=>{st.q=e.target.value;shown=40;renderSearch()},200)};
