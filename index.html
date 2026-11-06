@@ -172,8 +172,10 @@ section{display:flex;flex-direction:column;gap:12px}
 .yr.na{cursor:default;color:var(--mut);border-style:dashed;background:transparent;opacity:.75}
 .yr.done:not([aria-pressed="true"]) small{color:var(--ok)}
 .pjump{display:flex;flex-wrap:wrap;gap:6px}
-.pjump a{font-size:.85rem;color:var(--acc2);border:1.5px solid var(--line);border-radius:20px;padding:1px 12px;text-decoration:none;background:var(--card)}
-.pjump a:hover{border-color:var(--gold)}
+.pjump button{font:700 .95rem/1.5 var(--sans);color:var(--acc2);border:1.5px solid var(--line);border-radius:22px;padding:6px 18px;background:var(--card);cursor:pointer}
+.pjump button:hover{border-color:var(--gold)}
+.pjump button[aria-selected="true"]{background:linear-gradient(170deg,var(--acc),var(--acc2));color:var(--bg);border-color:transparent}
+.ppart[hidden]{display:none!important}#paper:has(.pjump) .ppart+.ppart{margin-top:0;padding-top:0;border-top:0}
 .ytitle{font-size:1.2rem}
 .ppart{display:flex;flex-direction:column;gap:12px;scroll-margin-top:calc(env(safe-area-inset-top,0px) + 60px)}
 .ppart+.ppart{margin-top:10px;padding-top:14px;border-top:2px dashed var(--line)}
@@ -811,7 +813,7 @@ async function downloadPdf(){if(pdfBusy)return;pdfBusy=true;const btn=$("#pdfBtn
     const {h2c,jsPDF}=await pdfLibs();
     try{if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
     const W=640;const box=document.createElement("div");box.id="pdfArea";box.className="list sheet";box.style.width=W+"px";
-    box.innerHTML=$("#paper").innerHTML;document.body.appendChild(box);
+    box.innerHTML=$("#paper").innerHTML;box.querySelectorAll(".ppart[hidden]").forEach(x=>x.hidden=false);document.body.appendChild(box);
     box.querySelectorAll(".ytitle,.ptools,.pjump,.meta,.ans,.prow,.ibox").forEach(e=>e.remove());box.querySelectorAll(".qopts.pick").forEach(o=>{o.classList.remove("pick");o.querySelectorAll("li").forEach(li=>li.classList.remove("sel"))});
     box.querySelectorAll(".q").forEach(q=>{const n=(q.querySelector(".qn")||{}).textContent||"";const rows=[...(q.querySelector(".qt")||q).children];if(!rows.length)return;
       const frag=document.createDocumentFragment();rows.forEach((r,i)=>{const d=document.createElement("article");d.className="q pq"+(i===rows.length-1?" plast":"")+(i===0?" pfirst":"");
@@ -847,13 +849,17 @@ function renderPaper(){setTimeout(applyNav,0);
   store.set("last",p.key);
   const list=yearPapers(curPapers().length?curPapers():[p],p.y);
   const desc=x=>GRPD[x.p+"|"+x.l+"|"+x.grp]||(x.grp?GRPD[x.grp]:"")||"";
-  const jump=list.length>1?`<div class="pjump">${list.map((x,i)=>`<a href="#pp${i}" data-i="${i}">${pLbl(x)}</a>`).join("")}</div>`:"";
+  const cur=Math.max(0,list.findIndex(x=>x.key===p.key));
+  const jump=list.length>1?`<div class="pjump" role="tablist">${list.map((x,i)=>`<button type="button" role="tab" data-i="${i}" aria-selected="${i===cur}">${pLbl(x)}</button>`).join("")}</div>`:"";
   const tb=`<div class="ptools"><button class="btn g" id="sheetBtn" aria-pressed="${SHEET}">📄 ${SHEET?"සාමාන්‍ය පෙනුම":"මුද්‍රිත පත්‍ර පෙනුම"}</button><button class="btn g" id="pdfBtn">📥 PDF ලෙස ගන්න</button></div>`;
   $("#paper").classList.toggle("sheet",SHEET);
-  $("#paper").innerHTML=`<h2 class="ytitle">${label(p)}${list.length>1?` · පත්‍ර ${list.length}`:""}</h2>`+tb+jump+list.map((x,i)=>`<div class="ppart" id="pp${i}"><div class="card phead">${examHead(x,list.length>1,desc(x))}<div class="row prow"><span class="src">${x.src==="pdf"?"ස්කෑන් PDF එකෙන් ලියාගත්":"ප්‍රශ්න පත්‍ර පොතෙන්"}</span><div class="pscore" data-k="${esc(x.key)}">${paperScore(x)}</div></div></div>${x.qs.map(q=>qCard(q)).join("")}</div>`).join("");
+  $("#paper").innerHTML=`<h2 class="ytitle">${label(p)}${list.length>1?` · පත්‍ර ${list.length}`:""}</h2>`+tb+jump+list.map((x,i)=>`<div class="ppart" id="pp${i}"${list.length>1&&i!==cur?" hidden":""}><div class="card phead">${examHead(x,list.length>1,desc(x))}<div class="row prow"><span class="src">${x.src==="pdf"?"ස්කෑන් PDF එකෙන් ලියාගත්":"ප්‍රශ්න පත්‍ර පොතෙන්"}</span><div class="pscore" data-k="${esc(x.key)}">${paperScore(x)}</div></div></div>${x.qs.map(q=>qCard(q)).join("")}</div>`).join("");
   $("#sheetBtn").onclick=()=>{SHEET=!SHEET;store.set("sheet",SHEET);renderPaper()};
   $("#pdfBtn").onclick=downloadPdf;
-  $("#paper").querySelectorAll(".pjump a").forEach(a=>a.onclick=e=>{e.preventDefault();const el=$("#pp"+a.dataset.i);if(el)el.scrollIntoView({behavior:"smooth",block:"start"})});
+  // parts (අ / ආ කොටස) open one at a time
+  $("#paper").querySelectorAll(".pjump button").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;
+    $("#paper").querySelectorAll(".ppart").forEach((el,j)=>el.hidden=j!==i);$("#paper").querySelectorAll(".pjump button").forEach((x,j)=>x.setAttribute("aria-selected",j===i));
+    st.paper=list[i].key;navPaper=st.paper;save();store.set("last",st.paper);applyNav();const h=$("#paper .pjump");if(h&&h.getBoundingClientRect().top<0)h.scrollIntoView({block:"start"})});
   bind($("#paper"));
 }
 let shown=40,chipsAll=false;
