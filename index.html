@@ -90,7 +90,7 @@ h2{font-size:1.15rem;margin:0;color:var(--acc2)}
 .logo .mt{font-family:"Noto Serif Sinhala","Iskoola Pota",serif;font-weight:700}
 .logo .bt{fill:var(--bg);stroke:var(--bg);stroke-width:1px;paint-order:stroke;font-family:"Noto Sans Sinhala","Iskoola Pota","Nirmala UI",sans-serif;font-weight:800}
 .logo stop{stop-color:var(--gold)}.logo stop+stop{stop-color:var(--acc)}
-@media(min-width:1000px){.htabs{top:0;margin-top:0}#home .logo{width:min(220px,80%)}}
+@media(min-width:100000px){.htabs{top:0;margin-top:0}#home .logo{width:min(220px,80%)}}
 
 /* ---------- home ---------- */
 .hero{text-align:center;padding:10px 0 0}
@@ -130,7 +130,7 @@ h2{font-size:1.15rem;margin:0;color:var(--acc2)}
 .xbt[aria-current="true"]{outline:2px solid var(--gold);outline-offset:2px;box-shadow:0 0 0 4px color-mix(in srgb,var(--gold) 25%,transparent)}
 .card.cur{border-color:var(--gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 35%,transparent),0 3px 10px var(--sh)}
 @keyframes slide{from{transform:translateX(36px);opacity:.3}}
-@media(min-width:1000px){
+@media(min-width:100000px){
  main{max-width:1440px;display:grid;grid-template-columns:400px minmax(0,1fr);gap:26px;align-items:start}
  #home{position:sticky;top:calc(env(safe-area-inset-top,0px) + 58px);max-height:calc(100vh - env(safe-area-inset-top,0px) - 66px);overflow:auto;padding:2px 8px 16px 2px;scrollbar-width:thin}
  #home .hero-img{width:min(270px,100%)}
@@ -140,7 +140,9 @@ h2{font-size:1.15rem;margin:0;color:var(--acc2)}
  .pback{display:none}
  #inner{border-left:1.5px solid var(--line);padding-left:26px;min-height:calc(100vh - 80px)}
 }
-@media(max-width:999px){
+/* home page and exam page are always separate pages (phone, tab and laptop alike) */
+@media(min-width:760px){body[data-page="inner"] #inner{padding-left:max(24px,calc((100vw - 980px)/2))!important;padding-right:max(24px,calc((100vw - 980px)/2))!important}}
+@media all{
  #inner{display:none}
  body[data-page="inner"]{overflow:hidden}
  body[data-page="inner"] #inner{display:flex;position:fixed;left:0;right:0;bottom:0;top:calc(env(safe-area-inset-top,0px) + 47px);z-index:12;overflow:auto;overscroll-behavior:contain;background-color:var(--bg);background-image:radial-gradient(ellipse 90% 45% at 50% 0,var(--halo),transparent 70%),repeating-linear-gradient(0deg,var(--glow) 0 1px,transparent 1px 6px);padding:12px max(16px,env(safe-area-inset-right,0px)) calc(56px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));animation:slide .25s ease-out}
@@ -474,7 +476,7 @@ function sp(force){const p=$("#sp"),o=typeof force==="boolean"?force:p.hidden;p.
 $("#stb").onclick=()=>sp();
 document.addEventListener("click",e=>{const p=$("#sp");if(!p.hidden&&!e.target.closest("#sp")&&!e.target.closest("#stb"))sp(false)});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")sp(false)});
-const WIDE=matchMedia("(min-width:1000px)");
+const WIDE=matchMedia("(min-width:100000px)"); // two-pane layout disabled
 function panelTop(){if(WIDE.matches)window.scrollTo(0,0);else $("#inner").scrollTop=0}
 function openPanel(){st.page="inner";if(!WIDE.matches&&location.hash!=="#panel"){location.hash="panel"}go();panelTop()}
 function closePanel(){stopExam();if(location.hash==="#panel"){history.back();return}st.page="home";go()}
