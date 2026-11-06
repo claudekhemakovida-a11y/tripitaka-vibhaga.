@@ -650,27 +650,36 @@ function subParts(q){if(!q||!q.t)return [];const out=[];
     if(/^\*$/.test(mk))mk="•";out.push({mk,txt:[...txt].length>70?[...txt].slice(0,68).join("")+"…":txt})});
   if(!out.length)return out;const fam=m=>{const k=mkNorm(m);return /^[ivx]+$/.test(k)?"r":/^\d+$/.test(k)?"d":k==="•"?"s":"l"};const f=fam(out[0].mk);
   return out.filter(o=>fam(o.mk)===f)}
+// one answer box per question: split the text by the sub-question markers the student wrote (i. / ii. / (1) / අ.)
+function splitBySubs(q,txt){const subs=subParts(q);if(subs.length<2)return null;const keys=subs.map(s=>mkNorm(s.mk).toLowerCase());
+  const parts=subs.map(()=>[]);let cur=-1,found=0;
+  String(txt||"").split("\n").forEach(l=>{const m=l.match(/^\s*\(?\s*([ivx]+|\d{1,2}|[අ-ෆ]|[a-e]|[•*])\s*[\).:\-–]?\s+/i)||l.match(/^\s*\(?\s*([ivx]+|\d{1,2}|[අ-ෆ]|[a-e])\s*[\).]/i);
+    if(m){let k=mkNorm(m[1]).toLowerCase();if(k==="*")k="•";const j=keys.indexOf(k,cur+1)>=0?keys.indexOf(k,cur+1):keys.indexOf(k);
+      if(j>=0){cur=j;found++;parts[j].push(l.slice(m[0].length));return}}
+    parts[Math.max(cur,0)].push(l)});
+  return found?parts.map(x=>x.join("\n").trim()):null}
+const subHint=q=>{const s=subParts(q);return s.length>=2?s.map(x=>x.mk+" …").join("\n"):""};
 function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.text||"",r=PR[aid]||{},open=el.dataset.show==="1";
   const unlocked=(r.best||0)>=UNLOCK;
   let h="";
   if(!ansReady&&!ansTried){el.innerHTML=`<div class="aempty">පිළිතුරු පූරණය වෙමින්…</div>`;return}
   const qno=q&&q.n?String(q.n):"";
   const subs=subParts(q);
-  if(subs.length>=2){const parts=Array.isArray(r.parts)&&r.parts.length===subs.length?r.parts:(r.text?[r.text,...subs.slice(1).map(()=>"")]:subs.map(()=>""));
+  if(false){const parts=[];
     h+=`<div class="alab">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර <span class="note">(උප ප්‍රශ්න ${subs.length})</span></div>`+subs.map((sb,j)=>`<div class="apart"><label class="asl" for="pt-${aid}-${j}"><b>${qno?esc(qno)+" ":""}${esc(sb.mk)}</b> <span>${esc(sb.txt)}</span></label><textarea class="ata apt apt-p" id="pt-${aid}-${j}" data-i="${j}" rows="${subs.length>5?2:4}" placeholder="${esc(sb.mk)} සඳහා පිළිතුර…">${esc(parts[j]||"")}</textarea></div>`).join("")}
-  else h+=`<label class="alab" for="pt-${aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label><textarea class="ata apt" id="pt-${aid}" rows="7" placeholder="${qno?`ප්‍රශ්න අංක ${esc(qno)} සඳහා `:"ප්‍රශ්නයට "}ඔබේ පිළිතුර මෙහි ලියන්න…">${esc(r.text||"")}</textarea>`;
+  else h+=`<label class="alab" for="pt-${aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label>${subs.length>=2?`<div class="note">උප ප්‍රශ්න ${subs.map(s=>esc(s.mk)).join(", ")} – පිළිතුරේ ඒ ඒ අංකය පේළියේ මුලින් යොදා ලියන්න.</div>`:""}<textarea class="ata apt" id="pt-${aid}" rows="${subs.length>=2?Math.min(14,4+subs.length*2):7}" placeholder="${subs.length>=2?esc(subHint(q)):(qno?`ප්‍රශ්න අංක ${esc(qno)} සඳහා `:"ප්‍රශ්නයට ")+"ඔබේ පිළිතුර මෙහි ලියන්න…"}">${esc(r.text||"")}</textarea>`;
   h+=`<div class="aact"><button class="btn acheck">${model?"පිළිතුර පරීක්ෂා කරන්න":"සුරකින්න"}</button><span class="amsg note"></span></div>`;
   if(model&&typeof r.cov==="number"){h+=`<div class="ascore"><div class="arow"><b class="amarks">ලකුණු ${r.marks} / 10</b><span>${r.ess?`අත්‍යවශ්‍ය කරුණු ${r.hit} / ${r.total}`:"ප්‍රධාන කරුණු"} · ආවරණය ${pct(r.cov)}${r.best>r.cov?` · හොඳම ${pct(r.best)}`:""}</span></div>${Array.isArray(r.per)&&r.per.length>1?`<div class="aper">${r.per.map(x=>`<span><b>${esc(x.mk)}</b> ${x.m}/${x.w}</span>`).join("")}</div>`:""}
      <div class="abar"><i style="width:${Math.min(100,r.cov*100)}%"></i><u style="left:${UNLOCK*100}%"></u></div>
      <div class="note">${unlocked?"✓ ආදර්ශ පිළිතුර බැලීමට ඔබට හැකියි.":`ආදර්ශ පිළිතුර බැලීමට ප්‍රධාන කරුණුවලින් ${pct(UNLOCK)}ක් ආවරණය විය යුතුය. තවත් කරුණු එකතු කර නැවත පරීක්ෂා කරන්න.`}</div></div>`}
   if(model){h+=unlocked?`<div class="aact"><button class="btn g ashow">${open?"ආදර්ශ පිළිතුර සඟවන්න":"📖 ආදර්ශ පිළිතුර බලන්න"}</button></div>`:`<div class="alock">🔒 ආදර්ශ පිළිතුර – ${pct(UNLOCK)}ක ආවරණයකින් පසු විවෘත වේ</div>`;
-    if(unlocked&&open){const sc=score(q,r.text||"",r.parts);h+=`<div class="atxt"><div class="ah">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ආදර්ශ පිළිතුර</div>${renderModel(model)}</div>`+(sc&&sc.miss.length?`<div class="amiss"><b>${sc.ess?"ඔබේ පිළිතුරේ නොතිබූ අත්‍යවශ්‍ය කරුණු":"ඔබේ පිළිතුරේ නොතිබූ ප්‍රධාන පද"}:</b> ${sc.miss.slice(0,40).map(esc).join(", ")}</div>`:"")}}
+    if(unlocked&&open){const sc=score(q,r.text||"",splitBySubs(q,r.text||""));h+=`<div class="atxt"><div class="ah">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ආදර්ශ පිළිතුර</div>${renderModel(model)}</div>`+(sc&&sc.miss.length?`<div class="amiss"><b>${sc.ess?"ඔබේ පිළිතුරේ නොතිබූ අත්‍යවශ්‍ය කරුණු":"ඔබේ පිළිතුරේ නොතිබූ ප්‍රධාන පද"}:</b> ${sc.miss.slice(0,40).map(esc).join(", ")}</div>`:"")}}
   else h+=`<div class="aempty">${ansTried&&!DB&&window.claude?"පිළිතුරු ගබඩාවට සම්බන්ධ විය නොහැක.":"මෙම ප්‍රශ්නයට ආදර්ශ පිළිතුර තවම ඇතුළත් කර නැත. ඔබේ පිළිතුර සුරැකිය හැකියි; ආදර්ශ පිළිතුර ඇතුළත් කළ පසු ලකුණු ලැබේ."}</div>`;
   if(canWrite)h+=`<div class="aact aed"><button class="btn g aedit">✏️ ${model?"ආදර්ශ පිළිතුර සංස්කරණය කරන්න":"ආදර්ශ පිළිතුර ලියන්න"}</button></div>`;
   el.innerHTML=h;
   const msg=m=>el.querySelector(".amsg").textContent=m;
   el.querySelector(".acheck").onclick=async()=>{const pp=[...el.querySelectorAll(".apt-p")];let parts=null,txt;
-    if(pp.length){parts=pp.map(t=>t.value.trim());txt=parts.map((v,j)=>v?`${subs[j].mk} ${v}`:"").filter(Boolean).join("\n")}else txt=el.querySelector(".apt").value.trim();
+    txt=el.querySelector(".apt").value.trim();parts=splitBySubs(q,txt);
     if(!txt){msg("පළමුව පිළිතුරක් ලියන්න.");return}
     const sc=model?score(q,txt,parts):null;const rec={text:txt,updatedAt:new Date().toISOString()};if(parts)rec.parts=parts;
     if(sc){rec.cov=+sc.cov.toFixed(3);rec.marks=sc.marks;if(sc.per)rec.per=sc.per;rec.ess=!!sc.ess;rec.hit=sc.hit;rec.total=sc.total;rec.best=Math.max(sc.cov,PR[aid]&&PR[aid].best||0)}
@@ -829,8 +838,8 @@ function exRead(){const out={};$("#examList").querySelectorAll(".exa").forEach(b
 function exSave(){if(!exP)return;store.set(exDraftKey(),{endAt,exStart,a:exRead()})}
 function examCount(){if(!exP)return;const a=exRead();const n=exP.qs.filter(q=>(a[q.aid]||[]).some(v=>v.trim())).length;$("#examDone").textContent=`පිළිතුරු ලියූ ප්‍රශ්න: ${n} / ${exP.qs.length}`}
 function exBox(q,prev){const subs=subParts(q),qno=q.n?String(q.n):"";prev=prev||[];
-  if(subs.length>=2)return `<div class="exa" data-aid="${q.aid}">${subs.map((sb,j)=>`<div class="apart"><label class="asl" for="ex-${q.aid}-${j}"><b>${qno?esc(qno)+" ":""}${esc(sb.mk)}</b> <span>${esc(sb.txt)}</span></label><textarea class="ata" id="ex-${q.aid}-${j}" rows="${subs.length>5?2:4}" placeholder="${esc(sb.mk)} සඳහා පිළිතුර…">${esc(prev[j]||"")}</textarea></div>`).join("")}</div>`;
-  return `<div class="exa" data-aid="${q.aid}"><label class="alab" for="ex-${q.aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label><textarea class="ata" id="ex-${q.aid}" rows="6" placeholder="පිළිතුර මෙහි ලියන්න…">${esc(prev[0]||"")}</textarea></div>`}
+  if(false)return `<div class="exa" data-aid="${q.aid}">${subs.map((sb,j)=>`<div class="apart"><label class="asl" for="ex-${q.aid}-${j}"><b>${qno?esc(qno)+" ":""}${esc(sb.mk)}</b> <span>${esc(sb.txt)}</span></label><textarea class="ata" id="ex-${q.aid}-${j}" rows="${subs.length>5?2:4}" placeholder="${esc(sb.mk)} සඳහා පිළිතුර…">${esc(prev[j]||"")}</textarea></div>`).join("")}</div>`;
+  return `<div class="exa" data-aid="${q.aid}"><label class="alab" for="ex-${q.aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label>${subs.length>=2?`<div class="note">උප ප්‍රශ්න ${subs.map(s=>esc(s.mk)).join(", ")} – පිළිතුරේ ඒ ඒ අංකය පේළියේ මුලින් යොදා ලියන්න.</div>`:""}<textarea class="ata" id="ex-${q.aid}" rows="${subs.length>=2?Math.min(14,4+subs.length*2):6}" placeholder="${subs.length>=2?esc(subHint(q)):"පිළිතුර මෙහි ලියන්න…"}">${esc(prev.length>1?prev.map((v,j)=>v?(subs[j]?subs[j].mk+" ":"")+v:"").filter(Boolean).join("\n"):(prev[0]||""))}</textarea></div>`}
 function tick(){const s=Math.max(0,Math.round((endAt-Date.now())/1000)),f=n=>String(n).padStart(2,"0");$("#clock").textContent=s?`${f(Math.floor(s/3600))}:${f(Math.floor(s%3600/60))}:${f(s%60)}`:"කාලය අවසන්";$("#clock").classList.toggle("low",s<600);if(!s){clearInterval(timer);if(exP)finishExam(true)}}
 function stopExam(){clearInterval(timer);exP=null;exConfirm=null;$("#examRun").hidden=true;$("#examRes").hidden=true;$("#examSetup").hidden=false;$("#exConf").hidden=true}
 function runExam(p,draft){exP=p;exConfirm=null;$("#exConf").hidden=true;$("#examTitle").textContent=label(p)+partLbl(p);
@@ -850,7 +859,7 @@ $("#stopExam").onclick=()=>{if(exAsk("stop"))finishExam(false)};
 $("#quitExam").onclick=()=>{if(!exAsk("quit"))return;try{localStorage.removeItem("tvib:"+exDraftKey())}catch(e){}stopExam()};
 async function finishExam(timeUp){if(!exP)return;clearInterval(timer);const p=exP,a=exRead(),used=Math.min(Date.now(),endAt)-exStart;
   const rows=p.qs.map(q=>{const vals=a[q.aid]||[],subs=subParts(q),model=ANS[q.aid]&&ANS[q.aid].text;
-    const parts=vals.length>1?vals.map(v=>v.trim()):null,txt=parts?parts.map((v,j)=>v?`${subs[j]?subs[j].mk:""} ${v}`:"").filter(Boolean).join("\n"):(vals[0]||"").trim();
+    const txt=(vals[0]||"").trim(),parts=splitBySubs(q,txt);
     const sc=model&&txt?score(q,txt,parts):null;return {q,txt,parts,model,sc,marks:model?(sc?sc.marks:0):null}});
   const scored=rows.filter(r=>r.model),got=scored.reduce((s,r)=>s+r.marks,0),pct100=scored.length?Math.round(got/(scored.length*10)*1000)/10:null;
   // keep each answer in the practice record too, so the question's own answer panel shows it
