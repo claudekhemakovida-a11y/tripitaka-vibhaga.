@@ -121,6 +121,9 @@ h2{font-size:1.15rem;margin:0;color:var(--acc2)}
 
 /* ---------- inner pages ---------- */
 .crumb{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.navtog{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:9px 14px;border-radius:12px;border:1.5px dashed var(--line);background:var(--card);color:var(--acc2);font:700 .9rem/1.5 var(--sans);cursor:pointer;text-align:left}
+.navtog[hidden]{display:none}.navtog:hover{border-color:var(--acc)}
+.navfold #triNav,.navfold #upsNav,.navfold nav.tabs,.navfold #years,.navfold #legend,.navfold .progress{display:none!important}
 .pback{flex:none}
 #panelEmpty{text-align:center;padding:48px 24px}
 #panelEmpty .big{font-size:2.6rem;color:var(--gold);line-height:1}
@@ -358,6 +361,7 @@ mark{background:color-mix(in srgb,var(--gold) 30%,transparent);color:inherit;bor
    <div id="panelEmpty" class="card"><div class="big">☸</div><h2>විභාගයක් තෝරන්න</h2><p class="note">වම් පැත්තේ "🧭 විභාග" ටැබ් එකෙන් හෝ ඉහළ පටුන බොත්තමෙන් විභාගයක් තේරූ විට, එහි ප්‍රශ්නපත්‍ර මෙහි විවෘත වේ.</p></div>
    <div id="panelBody" class="list">
     <div class="crumb"><button class="ib pback" id="pback" aria-label="මුල් පිටුවට">←</button><h1 id="secTitle"></h1></div>
+    <button class="navtog" id="navTog" hidden aria-expanded="false"><span class="ntl">☰ වෙනත් වර්ෂයක් / විෂයක් තෝරන්න</span><span class="ntc" aria-hidden="true">▾</span></button>
     <div id="triNav" class="list" style="gap:8px">
       <div class="pit" id="pitBar"></div>
       <div class="syl" id="sylLine"></div>
@@ -837,7 +841,7 @@ async function downloadPdf(){if(pdfBusy)return;pdfBusy=true;const btn=$("#pdfBtn
     msg(r==="declined"?"ඩවුන්ලෝඩ් කිරීම අවලංගු කළා":"✓ PDF ගොනුව සුරැකුණා");setTimeout(()=>msg(old),3000);
   }catch(e){const a=document.getElementById("pdfArea");if(a)a.remove();msg("PDF සැකසීම අසාර්ථකයි – නැවත උත්සාහ කරන්න");setTimeout(()=>msg(old),4000)}
   finally{pdfBusy=false}}
-function renderPaper(){
+function renderPaper(){setTimeout(applyNav,0);
   const p=DATA.find(x=>x.key===st.paper);
   if(!p){$("#paper").innerHTML=`<div class="empty">මේ මට්ටමට තවම ප්‍රශ්නපත්‍ර ඇතුළත් කර නැත.</div>`;return}
   store.set("last",p.key);
@@ -946,7 +950,15 @@ function renderExamRes(p,rows,pct100,used,timeUp){const el=$("#examRes"),f=n=>St
 $("#pback").onclick=closePanel;
 try{if(location.hash==="#panel")history.replaceState(null,"",location.pathname+location.search)}catch(e){}
 
-function go(){save();renderNav();renderHome();
+// once a paper is open, the selectors above it fold away; the bar brings them back
+let navOpen=false,navPaper=null;
+function applyNav(){const p=st.page!=="home"&&st.view==="papers"&&DATA.some(x=>x.key===st.paper);
+  if(st.paper!==navPaper){navPaper=st.paper;navOpen=false}
+  const fold=p&&!navOpen;$("#panelBody").classList.toggle("navfold",fold);
+  const b=$("#navTog");b.hidden=!p;b.setAttribute("aria-expanded",String(!fold));
+  if(p){const x=DATA.find(x=>x.key===st.paper);b.querySelector(".ntl").textContent=fold?`☰ ${x.p==="උපසම්පදා"?"උපසම්පදා":x.p+" "+x.l} ${x.y} · වෙනත් වර්ෂයක් / විෂයක් තෝරන්න`:"▴ තේරීම් කොටස සඟවන්න";b.querySelector(".ntc").textContent=fold?"▾":""}}
+$("#navTog").onclick=()=>{navOpen=!navOpen;applyNav()};
+function go(){save();renderNav();renderHome();setTimeout(applyNav,0);
   if(st.page==="home")return;
   if(st.view==="papers"){renderYears();renderProgress();renderPaper()}
   if(st.view==="search"){shown=40;renderSearch()}
