@@ -864,7 +864,7 @@ function renderPaper(){setTimeout(applyNav,0);
   const jump=list.length>1?`<div class="pjump" role="tablist">${list.map((x,i)=>`<button type="button" role="tab" data-i="${i}" aria-selected="${i===cur}">${pLbl(x)}</button>`).join("")}</div>`:"";
   const tb=`<div class="ptools"><button class="btn g" id="sheetBtn" aria-pressed="${SHEET}">📄 ${SHEET?"සාමාන්‍ය පෙනුම":"මුද්‍රිත පත්‍ර පෙනුම"}</button><button class="btn g" id="pdfBtn">📥 PDF ලෙස ගන්න</button></div>`;
   $("#paper").classList.toggle("sheet",SHEET);
-  $("#paper").innerHTML=`<h2 class="ytitle">${label(p)}${list.length>1?` · පත්‍ර ${list.length}`:""}</h2>`+tb+jump+list.map((x,i)=>`<div class="ppart" id="pp${i}"${list.length>1&&i!==cur?" hidden":""}><div class="card phead">${examHead(x,list.length>1,desc(x))}<div class="row prow"><span class="src">${x.src==="pdf"?"ස්කෑන් PDF එකෙන් ලියාගත්":"ප්‍රශ්න පත්‍ර පොතෙන්"}</span><div class="pscore" data-k="${esc(x.key)}">${paperScore(x)}</div></div></div>${x.qs.map(q=>qCard(q,{write:1})).join("")}</div>`).join("");
+  $("#paper").innerHTML=`<h2 class="ytitle">${label(p)}${list.length>1?` · පත්‍ර ${list.length}`:""}</h2>`+tb+jump+list.map((x,i)=>`<div class="ppart" id="pp${i}"${list.length>1&&i!==cur?" hidden":""}><div class="card phead">${examHead(x,list.length>1,desc(x))}<div class="row prow"><div class="pscore" data-k="${esc(x.key)}">${paperScore(x)}</div></div></div>${x.qs.map(q=>qCard(q,{write:1})).join("")}</div>`).join("");
   $("#sheetBtn").onclick=()=>{SHEET=!SHEET;store.set("sheet",SHEET);renderPaper()};
   $("#pdfBtn").onclick=downloadPdf;
   // parts (අ / ආ කොටස) open one at a time
