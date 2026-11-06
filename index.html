@@ -243,6 +243,9 @@ mark{background:color-mix(in srgb,var(--gold) 30%,transparent);color:inherit;bor
 .exam-head{position:sticky;top:calc(env(safe-area-inset-top,0px) + 48px);z-index:5;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
 .clock{font-size:1.6rem;font-weight:800;color:var(--acc2);font-variant-numeric:tabular-nums;font-family:var(--sans)}
 .clock.low{color:var(--bad)}
+.ibox{margin:6px 0 12px 1.6rem;display:flex;flex-direction:column;gap:3px}.ibox[hidden]{display:none}
+.ilab{font-size:.78rem;color:var(--acc2);font-weight:700;font-family:var(--sans)}
+.ibox .ata{min-height:56px;resize:vertical;overflow:hidden}
 .exbtns{display:flex;gap:6px;flex-wrap:wrap}.exconf{flex-basis:100%;color:var(--bad)}
 .exq .exa,.exr .exrow,.exr .aper,.exr .exdet{grid-column:1/-1}.exq .exa{margin-top:10px;border-top:1.5px dashed var(--line);padding-top:8px;display:flex;flex-direction:column;gap:8px}.exr .exdet{border-top:1.5px dashed var(--line);padding-top:8px}
 .exres-head{text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center}
@@ -659,13 +662,30 @@ function splitBySubs(q,txt){const subs=subParts(q);if(subs.length<2)return null;
     parts[Math.max(cur,0)].push(l)});
   return found?parts.map(x=>x.join("\n").trim()):null}
 const subHint=q=>{const s=subParts(q);return s.length>=2?s.map(x=>x.mk+" …").join("\n"):""};
+// answer boxes placed directly under each sub-question inside the question text
+function inlineBoxes(art,q,pre,vals){const qt=art.querySelector(".qt"),subs=subParts(q);if(!qt||subs.length<2)return false;
+  if(qt.querySelector(".ibox"))return true;
+  const kids=[...qt.children],starts=[];let j=0;
+  kids.forEach((el,i)=>{if(j>=subs.length||!el.classList.contains("qsub"))return;const m=el.querySelector(".qmk");if(m&&mkNorm(m.textContent)===mkNorm(subs[j].mk)){starts.push(i);j++}});
+  if(starts.length!==subs.length)return false;
+  const qno=q.n?String(q.n)+" ":"";
+  for(let s=subs.length-1;s>=0;s--){const endEl=s+1<subs.length?kids[starts[s+1]-1]:kids[kids.length-1];
+    const box=document.createElement("div");box.className="ibox";
+    box.innerHTML=`<label class="ilab" for="${pre}-${q.aid}-${s}">✍️ ${esc(qno+subs[s].mk)} පිළිතුර</label><textarea class="ata apt-i" id="${pre}-${q.aid}-${s}" data-i="${s}" rows="2" placeholder="${esc(subs[s].mk)} සඳහා පිළිතුර…"></textarea>`;
+    box.querySelector("textarea").value=(vals&&vals[s])||"";endEl.after(box)}
+  qt.querySelectorAll(".apt-i").forEach(grow);return true}
+function grow(ta){const f=()=>{ta.style.height="auto";ta.style.height=Math.max(ta.scrollHeight+2,56)+"px"};ta.addEventListener("input",f);requestAnimationFrame(f)}
+const joinParts=(q,parts)=>{const subs=subParts(q);return parts.map((v,j)=>v?`${subs[j]?subs[j].mk:""} ${v}`:"").filter(Boolean).join("\n")};
+function prevParts(q,r){const n=subParts(q).length;if(Array.isArray(r.parts)&&r.parts.length===n)return r.parts;const sp=splitBySubs(q,r.text||"");return sp||(r.text?[r.text]:[])}
 function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.text||"",r=PR[aid]||{},open=el.dataset.show==="1";
   const unlocked=(r.best||0)>=UNLOCK;
   let h="";
   if(!ansReady&&!ansTried){el.innerHTML=`<div class="aempty">පිළිතුරු පූරණය වෙමින්…</div>`;return}
   const qno=q&&q.n?String(q.n):"";
-  const subs=subParts(q);
-  if(false){const parts=[];
+  const subs=subParts(q);const art=el.closest(".q");
+  const inl=!!(art&&inlineBoxes(art,q,"pt",prevParts(q,r)));if(art)art.querySelectorAll(".ibox").forEach(b=>b.hidden=false);
+  if(inl)h+=`<div class="note">✍️ ඉහත එක් එක් උප ප්‍රශ්නයට යටින් ඇති කොටුවල පිළිතුරු ලියා, මෙම බොත්තම ඔබන්න.</div>`;
+  else if(false){const parts=[];
     h+=`<div class="alab">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර <span class="note">(උප ප්‍රශ්න ${subs.length})</span></div>`+subs.map((sb,j)=>`<div class="apart"><label class="asl" for="pt-${aid}-${j}"><b>${qno?esc(qno)+" ":""}${esc(sb.mk)}</b> <span>${esc(sb.txt)}</span></label><textarea class="ata apt apt-p" id="pt-${aid}-${j}" data-i="${j}" rows="${subs.length>5?2:4}" placeholder="${esc(sb.mk)} සඳහා පිළිතුර…">${esc(parts[j]||"")}</textarea></div>`).join("")}
   else h+=`<label class="alab" for="pt-${aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label>${subs.length>=2?`<div class="note">උප ප්‍රශ්න ${subs.map(s=>esc(s.mk)).join(", ")} – පිළිතුරේ ඒ ඒ අංකය පේළියේ මුලින් යොදා ලියන්න.</div>`:""}<textarea class="ata apt" id="pt-${aid}" rows="${subs.length>=2?Math.min(14,4+subs.length*2):7}" placeholder="${subs.length>=2?esc(subHint(q)):(qno?`ප්‍රශ්න අංක ${esc(qno)} සඳහා `:"ප්‍රශ්නයට ")+"ඔබේ පිළිතුර මෙහි ලියන්න…"}">${esc(r.text||"")}</textarea>`;
   h+=`<div class="aact"><button class="btn acheck">${model?"පිළිතුර පරීක්ෂා කරන්න":"සුරකින්න"}</button><span class="amsg note"></span></div>`;
@@ -673,13 +693,14 @@ function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.
      <div class="abar"><i style="width:${Math.min(100,r.cov*100)}%"></i><u style="left:${UNLOCK*100}%"></u></div>
      <div class="note">${unlocked?"✓ ආදර්ශ පිළිතුර බැලීමට ඔබට හැකියි.":`ආදර්ශ පිළිතුර බැලීමට ප්‍රධාන කරුණුවලින් ${pct(UNLOCK)}ක් ආවරණය විය යුතුය. තවත් කරුණු එකතු කර නැවත පරීක්ෂා කරන්න.`}</div></div>`}
   if(model){h+=unlocked?`<div class="aact"><button class="btn g ashow">${open?"ආදර්ශ පිළිතුර සඟවන්න":"📖 ආදර්ශ පිළිතුර බලන්න"}</button></div>`:`<div class="alock">🔒 ආදර්ශ පිළිතුර – ${pct(UNLOCK)}ක ආවරණයකින් පසු විවෘත වේ</div>`;
-    if(unlocked&&open){const sc=score(q,r.text||"",splitBySubs(q,r.text||""));h+=`<div class="atxt"><div class="ah">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ආදර්ශ පිළිතුර</div>${renderModel(model)}</div>`+(sc&&sc.miss.length?`<div class="amiss"><b>${sc.ess?"ඔබේ පිළිතුරේ නොතිබූ අත්‍යවශ්‍ය කරුණු":"ඔබේ පිළිතුරේ නොතිබූ ප්‍රධාන පද"}:</b> ${sc.miss.slice(0,40).map(esc).join(", ")}</div>`:"")}}
+    if(unlocked&&open){const sc=score(q,r.text||"",Array.isArray(r.parts)&&r.parts.length===subs.length?r.parts:splitBySubs(q,r.text||""));h+=`<div class="atxt"><div class="ah">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ආදර්ශ පිළිතුර</div>${renderModel(model)}</div>`+(sc&&sc.miss.length?`<div class="amiss"><b>${sc.ess?"ඔබේ පිළිතුරේ නොතිබූ අත්‍යවශ්‍ය කරුණු":"ඔබේ පිළිතුරේ නොතිබූ ප්‍රධාන පද"}:</b> ${sc.miss.slice(0,40).map(esc).join(", ")}</div>`:"")}}
   else h+=`<div class="aempty">${ansTried&&!DB&&window.claude?"පිළිතුරු ගබඩාවට සම්බන්ධ විය නොහැක.":"මෙම ප්‍රශ්නයට ආදර්ශ පිළිතුර තවම ඇතුළත් කර නැත. ඔබේ පිළිතුර සුරැකිය හැකියි; ආදර්ශ පිළිතුර ඇතුළත් කළ පසු ලකුණු ලැබේ."}</div>`;
   if(canWrite)h+=`<div class="aact aed"><button class="btn g aedit">✏️ ${model?"ආදර්ශ පිළිතුර සංස්කරණය කරන්න":"ආදර්ශ පිළිතුර ලියන්න"}</button></div>`;
   el.innerHTML=h;
   const msg=m=>el.querySelector(".amsg").textContent=m;
   el.querySelector(".acheck").onclick=async()=>{const pp=[...el.querySelectorAll(".apt-p")];let parts=null,txt;
-    txt=el.querySelector(".apt").value.trim();parts=splitBySubs(q,txt);
+    const ib=art?[...art.querySelectorAll(".qt .apt-i")]:[];
+    if(ib.length){parts=ib.map(x=>x.value.trim());txt=joinParts(q,parts)}else{txt=el.querySelector(".apt").value.trim();parts=splitBySubs(q,txt)}
     if(!txt){msg("පළමුව පිළිතුරක් ලියන්න.");return}
     const sc=model?score(q,txt,parts):null;const rec={text:txt,updatedAt:new Date().toISOString()};if(parts)rec.parts=parts;
     if(sc){rec.cov=+sc.cov.toFixed(3);rec.marks=sc.marks;if(sc.per)rec.per=sc.per;rec.ess=!!sc.ess;rec.hit=sc.hit;rec.total=sc.total;rec.best=Math.max(sc.cov,PR[aid]&&PR[aid].best||0)}
@@ -720,7 +741,7 @@ setTimeout(async()=>{try{PR=lsPR();
 
 function bind(root){
   root.querySelectorAll(".mark").forEach(b=>b.onclick=()=>{const a=b.closest(".q"),k=a.dataset.key;done.has(k)?done.delete(k):done.add(k);store.set("done",[...done]);a.classList.toggle("done",done.has(k));b.textContent=done.has(k)?"✓ පාඩම් කළා":"පාඩම් කළා";if(st.view==="papers"){renderProgress();renderYears()}if(exP)examCount()});
-  root.querySelectorAll(".abtn").forEach(b=>b.onclick=()=>{const el=b.closest(".q").querySelector(".ans");if(!el)return;el.hidden=!el.hidden;b.setAttribute("aria-expanded",!el.hidden);if(!el.hidden&&!el.dataset.editing)ansPanel(el)});
+  root.querySelectorAll(".abtn").forEach(b=>b.onclick=()=>{const el=b.closest(".q").querySelector(".ans");if(!el)return;el.hidden=!el.hidden;b.closest(".q").querySelectorAll(".ibox").forEach(x=>x.hidden=el.hidden);b.setAttribute("aria-expanded",!el.hidden);if(!el.hidden&&!el.dataset.editing)ansPanel(el)});
   root.querySelectorAll(".tag").forEach(b=>b.onclick=()=>{st.tag=b.dataset.tag;st.q="";$("#q").value="";st.view="search";go()});
 }
 function renderProgress(){const ac=document.getElementById("ansCount");if(ac)ac.textContent=ansCountTxt();const qs=curPapers().flatMap(p=>p.qs),d=qs.filter(q=>done.has(q.key)).length;$("#progTxt").textContent=`පාඩම් කළා ${d} / ${qs.length}`;$("#progBar").style.width=(qs.length?d/qs.length*100:0)+"%"}
@@ -759,7 +780,7 @@ async function downloadPdf(){if(pdfBusy)return;pdfBusy=true;const btn=$("#pdfBtn
     try{if(document.fonts&&document.fonts.ready)await document.fonts.ready}catch(e){}
     const W=640;const box=document.createElement("div");box.id="pdfArea";box.className="list sheet";box.style.width=W+"px";
     box.innerHTML=$("#paper").innerHTML;document.body.appendChild(box);
-    box.querySelectorAll(".ytitle,.ptools,.pjump,.meta,.ans,.prow").forEach(e=>e.remove());
+    box.querySelectorAll(".ytitle,.ptools,.pjump,.meta,.ans,.prow,.ibox").forEach(e=>e.remove());
     box.querySelectorAll(".q").forEach(q=>{const n=(q.querySelector(".qn")||{}).textContent||"";const rows=[...(q.querySelector(".qt")||q).children];if(!rows.length)return;
       const frag=document.createDocumentFragment();rows.forEach((r,i)=>{const d=document.createElement("article");d.className="q pq"+(i===rows.length-1?" plast":"")+(i===0?" pfirst":"");
         d.innerHTML=`<div class="qn">${i===0?esc(n):""}</div><div class="qt"></div>`;d.querySelector(".qt").appendChild(r.cloneNode(true));frag.appendChild(d)});q.replaceWith(frag)});
@@ -834,10 +855,12 @@ function renderExamSel(){const ps=curPapers().slice().reverse();const cur=$("#pa
   if(cur&&ps.some(p=>p.key===cur))$("#paperSel").value=cur;$("#startExam").disabled=!ps.length}
 // drafts are kept in this browser so an accidental reload does not lose the answers
 const exDraftKey=()=>exP?"exdraft:"+exP.key:"";
-function exRead(){const out={};$("#examList").querySelectorAll(".exa").forEach(box=>{const aid=box.dataset.aid,tas=[...box.querySelectorAll("textarea")];out[aid]=tas.map(x=>x.value)});return out}
+function exRead(){const out={};$("#examList").querySelectorAll(".exq").forEach(art=>{const ib=[...art.querySelectorAll(".qt .apt-i")];const box=art.querySelector(".exa");const aid=box.dataset.aid;
+  out[aid]=ib.length?ib.map(x=>x.value):[...box.querySelectorAll("textarea")].map(x=>x.value)});return out}
 function exSave(){if(!exP)return;store.set(exDraftKey(),{endAt,exStart,a:exRead()})}
 function examCount(){if(!exP)return;const a=exRead();const n=exP.qs.filter(q=>(a[q.aid]||[]).some(v=>v.trim())).length;$("#examDone").textContent=`පිළිතුරු ලියූ ප්‍රශ්න: ${n} / ${exP.qs.length}`}
 function exBox(q,prev){const subs=subParts(q),qno=q.n?String(q.n):"";prev=prev||[];
+  if(subs.length>=2&&q.__inl)return `<div class="exa" data-aid="${q.aid}"></div>`;
   if(false)return `<div class="exa" data-aid="${q.aid}">${subs.map((sb,j)=>`<div class="apart"><label class="asl" for="ex-${q.aid}-${j}"><b>${qno?esc(qno)+" ":""}${esc(sb.mk)}</b> <span>${esc(sb.txt)}</span></label><textarea class="ata" id="ex-${q.aid}-${j}" rows="${subs.length>5?2:4}" placeholder="${esc(sb.mk)} සඳහා පිළිතුර…">${esc(prev[j]||"")}</textarea></div>`).join("")}</div>`;
   return `<div class="exa" data-aid="${q.aid}"><label class="alab" for="ex-${q.aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label>${subs.length>=2?`<div class="note">උප ප්‍රශ්න ${subs.map(s=>esc(s.mk)).join(", ")} – පිළිතුරේ ඒ ඒ අංකය පේළියේ මුලින් යොදා ලියන්න.</div>`:""}<textarea class="ata" id="ex-${q.aid}" rows="${subs.length>=2?Math.min(14,4+subs.length*2):6}" placeholder="${subs.length>=2?esc(subHint(q)):"පිළිතුර මෙහි ලියන්න…"}">${esc(prev.length>1?prev.map((v,j)=>v?(subs[j]?subs[j].mk+" ":"")+v:"").filter(Boolean).join("\n"):(prev[0]||""))}</textarea></div>`}
 function tick(){const s=Math.max(0,Math.round((endAt-Date.now())/1000)),f=n=>String(n).padStart(2,"0");$("#clock").textContent=s?`${f(Math.floor(s/3600))}:${f(Math.floor(s%3600/60))}:${f(s%60)}`:"කාලය අවසන්";$("#clock").classList.toggle("low",s<600);if(!s){clearInterval(timer);if(exP)finishExam(true)}}
@@ -845,7 +868,10 @@ function stopExam(){clearInterval(timer);exP=null;exConfirm=null;$("#examRun").h
 function runExam(p,draft){exP=p;exConfirm=null;$("#exConf").hidden=true;$("#examTitle").textContent=label(p)+partLbl(p);
   exStart=draft&&draft.exStart||Date.now();endAt=draft&&draft.endAt||Date.now()+p.mins*60000;
   $("#examSetup").hidden=true;$("#examRes").hidden=true;$("#examRun").hidden=false;
-  $("#examList").innerHTML=p.qs.map(q=>`<article class="q exq" data-key="${esc(q.key)}"><div class="qn">${q.n||"•"}</div><div class="qt">${fmtQ(q.t)}</div>${exBox(q,draft&&draft.a&&draft.a[q.aid])}</article>`).join("");
+  $("#examList").innerHTML=p.qs.map(q=>`<article class="q exq" data-key="${esc(q.key)}"><div class="qn">${q.n||"•"}</div><div class="qt">${fmtQ(q.t)}</div><div class="exa" data-aid="${q.aid}"></div></article>`).join("");
+  $("#examList").querySelectorAll(".exq").forEach((art,i)=>{const q=p.qs[i],prev=(draft&&draft.a&&draft.a[q.aid])||[];
+    const pv=prev.length>1?prev:(prev[0]?(splitBySubs(q,prev[0])||[prev[0]]):[]);
+    if(!inlineBoxes(art,q,"ex",pv))art.querySelector(".exa").outerHTML=exBox(q,prev)});
   let sv;$("#examList").oninput=()=>{clearTimeout(sv);sv=setTimeout(()=>{exSave();examCount()},400)};
   examCount();tick();clearInterval(timer);timer=setInterval(tick,1000);window.scrollTo&&window.scrollTo(0,0)}
 $("#startExam").onclick=()=>{const p=DATA.find(p=>p.key===$("#paperSel").value);if(!p)return;
@@ -859,7 +885,7 @@ $("#stopExam").onclick=()=>{if(exAsk("stop"))finishExam(false)};
 $("#quitExam").onclick=()=>{if(!exAsk("quit"))return;try{localStorage.removeItem("tvib:"+exDraftKey())}catch(e){}stopExam()};
 async function finishExam(timeUp){if(!exP)return;clearInterval(timer);const p=exP,a=exRead(),used=Math.min(Date.now(),endAt)-exStart;
   const rows=p.qs.map(q=>{const vals=a[q.aid]||[],subs=subParts(q),model=ANS[q.aid]&&ANS[q.aid].text;
-    const txt=(vals[0]||"").trim(),parts=splitBySubs(q,txt);
+    const parts=vals.length>1?vals.map(v=>v.trim()):null,txt=parts?joinParts(q,parts):(vals[0]||"").trim();
     const sc=model&&txt?score(q,txt,parts):null;return {q,txt,parts,model,sc,marks:model?(sc?sc.marks:0):null}});
   const scored=rows.filter(r=>r.model),got=scored.reduce((s,r)=>s+r.marks,0),pct100=scored.length?Math.round(got/(scored.length*10)*1000)/10:null;
   // keep each answer in the practice record too, so the question's own answer panel shows it
