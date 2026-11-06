@@ -254,9 +254,13 @@ mark{background:color-mix(in srgb,var(--gold) 30%,transparent);color:inherit;bor
 .q:has(.ipick[hidden]) .qopts.pick li{cursor:default;border-color:transparent;padding:0}
 .q:has(.ipick[hidden]) .qopts.pick li.sel{background:none;font-weight:inherit;text-decoration:none}
 .ipick{margin:2px 0 10px 1.6rem}
-.ibox{margin:6px 0 12px 1.6rem;display:flex;flex-direction:column;gap:3px}.ibox[hidden]{display:none}
+.ibox{margin:2px 0 10px 1.6rem;display:flex;flex-direction:column;gap:3px}
+.ibox textarea.apt-i{--lh:2.1em;display:block;width:100%;box-sizing:border-box;min-height:var(--lh);line-height:var(--lh);padding:0 4px;margin:0;border:0;border-radius:0;outline:0;resize:none;overflow:hidden;color:var(--ink,inherit);font:inherit;line-height:var(--lh);
+  background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--lh) - 1px),color-mix(in srgb,var(--acc) 55%,transparent) calc(var(--lh) - 1px),color-mix(in srgb,var(--acc) 55%,transparent) var(--lh));background-attachment:local}
+.ibox textarea.apt-i:focus{background:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--lh) - 2px),var(--acc2) calc(var(--lh) - 2px),var(--acc2) var(--lh));background-attachment:local}
+.ibox textarea.apt-i::placeholder{color:var(--mut);opacity:.6;font-size:.85em}
+.ans.awrite{border-top:0;padding-top:0;margin-top:2px}.ans.awrite .aact{justify-content:flex-end}.ibox[hidden]{display:none}
 .ilab{font-size:.78rem;color:var(--acc2);font-weight:700;font-family:var(--sans)}
-.ibox .ata{min-height:56px;resize:vertical;overflow:hidden}
 .exbtns{display:flex;gap:6px;flex-wrap:wrap}.exconf{flex-basis:100%;color:var(--bad)}
 .exq .exa,.exr .exrow,.exr .aper,.exr .exdet{grid-column:1/-1}.exq .exa{margin-top:10px;border-top:1.5px dashed var(--line);padding-top:8px;display:flex;flex-direction:column;gap:8px}.exr .exdet{border-top:1.5px dashed var(--line);padding-top:8px}
 .exres-head{text-align:center;display:flex;flex-direction:column;gap:6px;align-items:center}
@@ -591,7 +595,7 @@ function qCard(q,opt={}){
   const d=done.has(q.key);
   const where=opt.where?`<span class="where">${label(q.paper)}${partLbl(q.paper)}</span>`:"";
   return `<article class="q${d?" done":""}" data-key="${esc(q.key)}"><div class="qn">${q.n||"•"}</div><div class="qt">${fmtQ(q.t,opt.q)}</div>
-  <div class="meta">${where}${q.book?`<span>${q.book}</span>`:""}${opt.tags?q.tags.map(t=>`<button class="tag" data-tag="${esc(t)}">${t}</button>`).join(""):""}${opt.exam?"":ansBtn(q)}<button class="mark">${d?"✓ පාඩම් කළා":"පාඩම් කළා"}</button></div>${opt.exam?"":`<div class="ans" data-aid="${q.aid}" hidden></div>`}</article>`;
+  <div class="meta">${where}${q.book?`<span>${q.book}</span>`:""}${opt.tags?q.tags.map(t=>`<button class="tag" data-tag="${esc(t)}">${t}</button>`).join(""):""}${opt.exam||opt.write?"":ansBtn(q)}<button class="mark">${d?"✓ පාඩම් කළා":"පාඩම් කළා"}</button></div>${opt.exam?"":`<div class="ans${opt.write?" awrite":""}" data-aid="${q.aid}"${opt.write?"":" hidden"}></div>`}</article>`;
 }
 /* ---------- answers ----------
    Model answers: shared db answers/<aid> = {text}. Editors (owner/admin) write them.
@@ -699,7 +703,7 @@ function inlineBoxes(art,q,pre,vals){const qt=art.querySelector(".qt"),subs=subP
     const blk=kids.slice(starts[s],(s+1<subs.length?starts[s+1]:kids.length)),ol=blk.map(k=>k.querySelector("ol.qopts")).find(Boolean);
     const box=document.createElement("div");box.className="ibox"+(ol?" ipick":"");
     box.innerHTML=ol?`<div class="ilab">☝️ ${esc(qno+subs[s].mk)} – නිවැරදි පිළිතුර තෝරන්න <span class="ichosen"></span></div><textarea class="ata apt-i" id="${pre}-${q.aid}-${s}" data-i="${s}" hidden></textarea>`
-      :`<label class="ilab" for="${pre}-${q.aid}-${s}">✍️ ${esc(qno+subs[s].mk)} පිළිතුර</label><textarea class="ata apt-i" id="${pre}-${q.aid}-${s}" data-i="${s}" rows="2" placeholder="${esc(subs[s].mk)} සඳහා පිළිතුර…"></textarea>`;
+      :`<textarea class="ata apt-i" id="${pre}-${q.aid}-${s}" data-i="${s}" rows="1" aria-label="${esc(qno+subs[s].mk)} පිළිතුර" placeholder="✍️ ${esc(subs[s].mk)} පිළිතුර…"></textarea>`;
     const ta=box.querySelector("textarea");ta.value=(vals&&vals[s])||"";endEl.after(box);
     if(ol){const lis=[...ol.children];ol.classList.add("pick");
       const show=()=>{const n=optNo(ta.value);lis.forEach((li,i)=>{li.classList.toggle("sel",i+1===n);li.setAttribute("aria-checked",i+1===n)});box.querySelector(".ichosen").textContent=n?`· තෝරාගත්තේ (${n})`:""};
@@ -708,7 +712,11 @@ function inlineBoxes(art,q,pre,vals){const qt=art.querySelector(".qt"),subs=subP
         li.onclick=pick;li.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick()}}});
       ol.setAttribute("role","radiogroup");show()}}
   qt.querySelectorAll(".apt-i:not([hidden])").forEach(grow);return true}
-function grow(ta){const f=()=>{ta.style.height="auto";ta.style.height=Math.max(ta.scrollHeight+2,56)+"px"};ta.addEventListener("input",f);requestAnimationFrame(f)}
+function writeBoxes(art,q,pre,vals){if(inlineBoxes(art,q,pre,vals))return true;const qt=art.querySelector(".qt");if(!qt)return false;if(qt.querySelector(".ibox"))return true;
+  const box=document.createElement("div");box.className="ibox";
+  box.innerHTML=`<textarea class="ata apt-i" id="${pre}-${q.aid}-0" data-i="0" rows="1" aria-label="${q.n?"ප්‍රශ්න අංක "+esc(String(q.n))+" – ":""}ඔබේ පිළිතුර" placeholder="✍️ පිළිතුර මෙහි ලියන්න…"></textarea>`;
+  box.querySelector("textarea").value=(vals&&vals[0])||"";qt.appendChild(box);qt.querySelectorAll(".apt-i:not([hidden])").forEach(grow);return true}
+function grow(ta){const f=()=>{ta.style.height="auto";ta.style.height=ta.scrollHeight+"px"};ta.addEventListener("input",f);requestAnimationFrame(f)}
 const joinParts=(q,parts)=>{const subs=subParts(q);return parts.map((v,j)=>v?`${subs[j]?subs[j].mk:""} ${v}`:"").filter(Boolean).join("\n")};
 function prevParts(q,r){const n=subParts(q).length;if(Array.isArray(r.parts)&&r.parts.length===n)return r.parts;const sp=splitBySubs(q,r.text||"");return sp||(r.text?[r.text]:[])}
 function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.text||"",r=PR[aid]||{},open=el.dataset.show==="1";
@@ -717,12 +725,15 @@ function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.
   if(!ansReady&&!ansTried){el.innerHTML=`<div class="aempty">පිළිතුරු පූරණය වෙමින්…</div>`;return}
   const qno=q&&q.n?String(q.n):"";
   const subs=subParts(q);const art=el.closest(".q");
-  const inl=!!(art&&inlineBoxes(art,q,"pt",prevParts(q,r)));if(art)art.querySelectorAll(".ibox").forEach(b=>b.hidden=false);
-  if(inl)h+=`<div class="note">✍️ ඉහත එක් එක් උප ප්‍රශ්නයට යටින් ඇති කොටුවල පිළිතුරු ලියා, මෙම බොත්තම ඔබන්න.</div>`;
+  const dr=store.get("draft:"+aid,null),wr=el.classList.contains("awrite");
+  const inl=!!(art&&(wr?writeBoxes(art,q,"pt",dr||prevParts(q,r)):inlineBoxes(art,q,"pt",prevParts(q,r))));if(art)art.querySelectorAll(".ibox").forEach(b=>b.hidden=false);
+  if(art&&wr&&!dr&&r.text){const ib=[...art.querySelectorAll(".qt .apt-i")];if(ib.length&&ib.every(x=>!x.value.trim())){const pv=prevParts(q,r);ib.forEach((x,i)=>{x.value=pv[i]||"";x.dispatchEvent(new Event("input"))});art.querySelectorAll(".ipick").forEach(()=>{})}}
+  if(art&&wr&&!art.dataset.dr){art.dataset.dr="1";let tm;art.querySelector(".qt").addEventListener("input",()=>{clearTimeout(tm);tm=setTimeout(()=>{const v=[...art.querySelectorAll(".qt .apt-i")].map(x=>x.value);store.set("draft:"+aid,v.some(x=>x.trim())?v:null)},500)})}
+  if(inl){if(!wr)h+=`<div class="note">✍️ ඉහත එක් එක් උප ප්‍රශ්නයට යටින් ඇති කොටුවල පිළිතුරු ලියා, මෙම බොත්තම ඔබන්න.</div>`}
   else if(false){const parts=[];
     h+=`<div class="alab">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර <span class="note">(උප ප්‍රශ්න ${subs.length})</span></div>`+subs.map((sb,j)=>`<div class="apart"><label class="asl" for="pt-${aid}-${j}"><b>${qno?esc(qno)+" ":""}${esc(sb.mk)}</b> <span>${esc(sb.txt)}</span></label><textarea class="ata apt apt-p" id="pt-${aid}-${j}" data-i="${j}" rows="${subs.length>5?2:4}" placeholder="${esc(sb.mk)} සඳහා පිළිතුර…">${esc(parts[j]||"")}</textarea></div>`).join("")}
   else h+=`<label class="alab" for="pt-${aid}">${qno?`ප්‍රශ්න අංක ${esc(qno)} – `:""}ඔබේ පිළිතුර</label>${subs.length>=2?`<div class="note">උප ප්‍රශ්න ${subs.map(s=>esc(s.mk)).join(", ")} – පිළිතුරේ ඒ ඒ අංකය පේළියේ මුලින් යොදා ලියන්න.</div>`:""}<textarea class="ata apt" id="pt-${aid}" rows="${subs.length>=2?Math.min(14,4+subs.length*2):7}" placeholder="${subs.length>=2?esc(subHint(q)):(qno?`ප්‍රශ්න අංක ${esc(qno)} සඳහා `:"ප්‍රශ්නයට ")+"ඔබේ පිළිතුර මෙහි ලියන්න…"}">${esc(r.text||"")}</textarea>`;
-  h+=`<div class="aact"><button class="btn acheck">${model?"පිළිතුර පරීක්ෂා කරන්න":"සුරකින්න"}</button><span class="amsg note"></span></div>`;
+  h+=`<div class="aact"><button class="btn acheck">${model?(wr?"✓ පරීක්ෂා කරන්න":"පිළිතුර පරීක්ෂා කරන්න"):"සුරකින්න"}</button><span class="amsg note"></span></div>`;
   if(model&&typeof r.cov==="number"){h+=`<div class="ascore"><div class="arow"><b class="amarks">ලකුණු ${r.marks} / 10</b><span>${r.mcq?`නිවැරදි පිළිතුරු ${r.hit} / ${r.total}`:r.ess?`අත්‍යවශ්‍ය කරුණු ${r.hit} / ${r.total}`:"ප්‍රධාන කරුණු"} · ආවරණය ${pct(r.cov)}${r.best>r.cov?` · හොඳම ${pct(r.best)}`:""}</span></div>${Array.isArray(r.per)&&r.per.length>1?`<div class="aper">${r.per.map(x=>`<span><b>${esc(x.mk)}</b> ${x.m}/${x.w}</span>`).join("")}</div>`:""}
      <div class="abar"><i style="width:${Math.min(100,r.cov*100)}%"></i><u style="left:${UNLOCK*100}%"></u></div>
      <div class="note">${unlocked?"✓ ආදර්ශ පිළිතුර බැලීමට ඔබට හැකියි.":`ආදර්ශ පිළිතුර බැලීමට ප්‍රධාන කරුණුවලින් ${pct(UNLOCK)}ක් ආවරණය විය යුතුය. තවත් කරුණු එකතු කර නැවත පරීක්ෂා කරන්න.`}</div></div>`}
@@ -734,7 +745,7 @@ function ansPanel(el){const aid=el.dataset.aid,q=qOf(aid),a=ANS[aid],model=a&&a.
   const msg=m=>el.querySelector(".amsg").textContent=m;
   el.querySelector(".acheck").onclick=async()=>{const pp=[...el.querySelectorAll(".apt-p")];let parts=null,txt;
     const ib=art?[...art.querySelectorAll(".qt .apt-i")]:[];
-    if(ib.length){parts=ib.map(x=>x.value.trim());txt=joinParts(q,parts)}else{txt=el.querySelector(".apt").value.trim();parts=splitBySubs(q,txt)}
+    if(ib.length>1){parts=ib.map(x=>x.value.trim());txt=joinParts(q,parts)}else if(ib.length===1){txt=ib[0].value.trim();parts=splitBySubs(q,txt)}else{txt=el.querySelector(".apt").value.trim();parts=splitBySubs(q,txt)}
     if(!txt){msg("පළමුව පිළිතුරක් ලියන්න.");return}
     const sc=model?score(q,txt,parts):null;const rec={text:txt,updatedAt:new Date().toISOString()};if(parts)rec.parts=parts;
     if(sc){rec.cov=+sc.cov.toFixed(3);rec.marks=sc.marks;if(sc.per)rec.per=sc.per;rec.ess=!!sc.ess;rec.mcq=!!sc.mcq;rec.hit=sc.hit;rec.total=sc.total;rec.best=Math.max(sc.cov,PR[aid]&&PR[aid].best||0)}
@@ -853,14 +864,14 @@ function renderPaper(){setTimeout(applyNav,0);
   const jump=list.length>1?`<div class="pjump" role="tablist">${list.map((x,i)=>`<button type="button" role="tab" data-i="${i}" aria-selected="${i===cur}">${pLbl(x)}</button>`).join("")}</div>`:"";
   const tb=`<div class="ptools"><button class="btn g" id="sheetBtn" aria-pressed="${SHEET}">📄 ${SHEET?"සාමාන්‍ය පෙනුම":"මුද්‍රිත පත්‍ර පෙනුම"}</button><button class="btn g" id="pdfBtn">📥 PDF ලෙස ගන්න</button></div>`;
   $("#paper").classList.toggle("sheet",SHEET);
-  $("#paper").innerHTML=`<h2 class="ytitle">${label(p)}${list.length>1?` · පත්‍ර ${list.length}`:""}</h2>`+tb+jump+list.map((x,i)=>`<div class="ppart" id="pp${i}"${list.length>1&&i!==cur?" hidden":""}><div class="card phead">${examHead(x,list.length>1,desc(x))}<div class="row prow"><span class="src">${x.src==="pdf"?"ස්කෑන් PDF එකෙන් ලියාගත්":"ප්‍රශ්න පත්‍ර පොතෙන්"}</span><div class="pscore" data-k="${esc(x.key)}">${paperScore(x)}</div></div></div>${x.qs.map(q=>qCard(q)).join("")}</div>`).join("");
+  $("#paper").innerHTML=`<h2 class="ytitle">${label(p)}${list.length>1?` · පත්‍ර ${list.length}`:""}</h2>`+tb+jump+list.map((x,i)=>`<div class="ppart" id="pp${i}"${list.length>1&&i!==cur?" hidden":""}><div class="card phead">${examHead(x,list.length>1,desc(x))}<div class="row prow"><span class="src">${x.src==="pdf"?"ස්කෑන් PDF එකෙන් ලියාගත්":"ප්‍රශ්න පත්‍ර පොතෙන්"}</span><div class="pscore" data-k="${esc(x.key)}">${paperScore(x)}</div></div></div>${x.qs.map(q=>qCard(q,{write:1})).join("")}</div>`).join("");
   $("#sheetBtn").onclick=()=>{SHEET=!SHEET;store.set("sheet",SHEET);renderPaper()};
   $("#pdfBtn").onclick=downloadPdf;
   // parts (අ / ආ කොටස) open one at a time
   $("#paper").querySelectorAll(".pjump button").forEach(b=>b.onclick=()=>{const i=+b.dataset.i;
     $("#paper").querySelectorAll(".ppart").forEach((el,j)=>el.hidden=j!==i);$("#paper").querySelectorAll(".pjump button").forEach((x,j)=>x.setAttribute("aria-selected",j===i));
     st.paper=list[i].key;navPaper=st.paper;save();store.set("last",st.paper);applyNav();const h=$("#paper .pjump");if(h&&h.getBoundingClientRect().top<0)h.scrollIntoView({block:"start"})});
-  bind($("#paper"));
+  bind($("#paper"));$("#paper").querySelectorAll(".ans.awrite").forEach(el=>{const aid=el.dataset.aid,q=qOf(aid),art=el.closest(".q");if(q&&art)writeBoxes(art,q,"pt",store.get("draft:"+aid,null)||prevParts(q,PR[aid]||{}));ansPanel(el)});
 }
 let shown=40,chipsAll=false;
 function renderSearch(){
@@ -909,7 +920,7 @@ function runExam(p,draft){exP=p;exConfirm=null;$("#exConf").hidden=true;$("#exam
   $("#examList").innerHTML=p.qs.map(q=>`<article class="q exq" data-key="${esc(q.key)}"><div class="qn">${q.n||"•"}</div><div class="qt">${fmtQ(q.t)}</div><div class="exa" data-aid="${q.aid}"></div></article>`).join("");
   $("#examList").querySelectorAll(".exq").forEach((art,i)=>{const q=p.qs[i],prev=(draft&&draft.a&&draft.a[q.aid])||[];
     const pv=prev.length>1?prev:(prev[0]?(splitBySubs(q,prev[0])||[prev[0]]):[]);
-    if(!inlineBoxes(art,q,"ex",pv))art.querySelector(".exa").outerHTML=exBox(q,prev)});
+    if(!writeBoxes(art,q,"ex",pv))art.querySelector(".exa").outerHTML=exBox(q,prev)});
   let sv;$("#examList").oninput=()=>{clearTimeout(sv);sv=setTimeout(()=>{exSave();examCount()},400)};
   examCount();tick();clearInterval(timer);timer=setInterval(tick,1000);window.scrollTo&&window.scrollTo(0,0)}
 $("#startExam").onclick=()=>{const p=DATA.find(p=>p.key===$("#paperSel").value);if(!p)return;
