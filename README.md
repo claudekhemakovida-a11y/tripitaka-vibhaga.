@@ -4,3 +4,5 @@
 
 - `index.html` – ඇප් එක (ප්‍රශ්නපත්‍ර සියල්ල ඇතුළත්)
 - `answers.json` – ප්‍රශ්නවලට පිළිතුරු (ප්‍රශ්න id → `{"text": "..."}`)
+
+ඇප් එක: https://tripitaka-vibhaga.github.io/
